@@ -1,0 +1,561 @@
+{
+ "checked_at": "2026-10-01T18:11:55-04:00",
+ "host": "C3P0",
+ "lean_version": "Lean (version 4.34.0, x86_64-unknown-linux-gnu, commit 293d5d0c0c3f3dded4688b3ccd6a33939ac5102b, Release)",
+ "toolchain": "leanprover/lean4:v4.34.0",
+ "mathlib": {
+  "commit": "db00fb3901b1bb4954f8a2373285959a5930bbfa",
+  "commit_date": "2026-09-15T06:31:53Z",
+  "files": 8530,
+  "lines": 2327785,
+  "theorems": 189375,
+  "defs": 36404
+ },
+ "files": [
+  {
+   "file": "lean/LeanProofs/AddZero.lean",
+   "module": "LeanProofs.AddZero",
+   "sha256": "3041f27dab791f5b38a5131d764ea029fe32ef83d899258c5b190a85f367c1b8",
+   "source": "namespace LeanProofs\n\n/-- `n + 0 = n` holds *by definition*: Lean defines addition by recursion\non the second argument, with `n + 0 := n`. So `rfl` (\"both sides compute\nto the same thing\") is a complete proof. -/\ntheorem add_zero (n : Nat) : n + 0 = n := rfl\n\n/-- `0 + n = n` is *not* true by definition, because the recursion runs on\nthe second argument. It needs induction on `n`. -/\ntheorem zero_add (n : Nat) : 0 + n = n := by\n  induction n with\n  | zero =>\n    rfl\n  | succ k ih =>\n    rw [Nat.add_succ]\n    rw [ih]\n\nend LeanProofs",
+   "expected_to_fail": false,
+   "lean_exit_code": 0,
+   "errors": 0,
+   "warnings": 0,
+   "messages": [],
+   "declarations": [
+    {
+     "name": "add_zero",
+     "kind": "theorem",
+     "doc_line": 3,
+     "line": 6,
+     "end": 6,
+     "full_name": "LeanProofs.add_zero",
+     "steps": [],
+     "axioms": [],
+     "term": "@[defeq] theorem LeanProofs.add_zero : ∀ (n : Nat), n + 0 = n :=\nfun n => rfl",
+     "source": "/-- `n + 0 = n` holds *by definition*: Lean defines addition by recursion\non the second argument, with `n + 0 := n`. So `rfl` (\"both sides compute\nto the same thing\") is a complete proof. -/\ntheorem add_zero (n : Nat) : n + 0 = n := rfl",
+     "messages": []
+    },
+    {
+     "name": "zero_add",
+     "kind": "theorem",
+     "doc_line": 8,
+     "line": 10,
+     "end": 16,
+     "full_name": "LeanProofs.zero_add",
+     "steps": [
+      {
+       "line": 11,
+       "before": "n : Nat\n⊢ 0 + n = n",
+       "after": "case zero\n⊢ 0 + 0 = 0"
+      },
+      {
+       "line": 13,
+       "before": "case zero\n⊢ 0 + 0 = 0",
+       "after": ""
+      },
+      {
+       "line": 15,
+       "before": "case succ\nk : Nat\nih : 0 + k = k\n⊢ 0 + (k + 1) = k + 1",
+       "after": "case succ\nk : Nat\nih : 0 + k = k\n⊢ (0 + k).succ = k + 1"
+      },
+      {
+       "line": 16,
+       "before": "case succ\nk : Nat\nih : 0 + k = k\n⊢ (0 + k).succ = k + 1",
+       "after": ""
+      }
+     ],
+     "axioms": [],
+     "term": "theorem LeanProofs.zero_add : ∀ (n : Nat), 0 + n = n :=\nfun n =>\n  Nat.recAux (Eq.refl (0 + 0))\n    (fun k ih =>\n      Eq.mpr (id (congrArg (fun _a => _a = k + 1) (Nat.add_succ 0 k)))\n        (Eq.mpr (id (congrArg (fun _a => _a.succ = k + 1) ih)) (Eq.refl k.succ)))\n    n",
+     "source": "/-- `0 + n = n` is *not* true by definition, because the recursion runs on\nthe second argument. It needs induction on `n`. -/\ntheorem zero_add (n : Nat) : 0 + n = n := by\n  induction n with\n  | zero =>\n    rfl\n  | succ k ih =>\n    rw [Nat.add_succ]\n    rw [ih]",
+     "messages": []
+    }
+   ]
+  },
+  {
+   "file": "lean/LeanProofs/Broken.lean",
+   "module": "LeanProofs.Broken",
+   "sha256": "40e7f938484ad6bee088684809fef8dd0170b15b2b885c47c58f5a600c9298fd",
+   "source": "import Mathlib\n\nnamespace LeanProofs\n\n/-- A false statement. The proof attempt is rejected. -/\ntheorem false_claim (n : ℕ) : n + 1 = n := by\n  omega\n\n/-- A true statement with a gap: `sorry` tells Lean \"trust me\". Lean\naccepts the file with a warning, and `#print axioms` exposes the gap. -/\ntheorem with_a_gap (n : ℕ) : n * 0 = 0 := by\n  sorry\n\nend LeanProofs",
+   "expected_to_fail": true,
+   "lean_exit_code": 1,
+   "errors": 1,
+   "warnings": 1,
+   "messages": [
+    {
+     "line": 7,
+     "col": 2,
+     "severity": "error",
+     "text": "omega could not prove the goal:\na possible counterexample may satisfy the constraints\n  a ≥ 0\nwhere\n a := ↑n"
+    },
+    {
+     "line": 11,
+     "col": 8,
+     "severity": "warning",
+     "text": "declaration uses `sorry`"
+    }
+   ],
+   "declarations": [
+    {
+     "name": "false_claim",
+     "kind": "theorem",
+     "doc_line": 5,
+     "line": 6,
+     "end": 7,
+     "full_name": "LeanProofs.false_claim",
+     "steps": [
+      {
+       "line": 7,
+       "before": "n : ℕ\n⊢ n + 1 = n",
+       "after": null
+      }
+     ],
+     "axioms": [
+      "sorryAx"
+     ],
+     "term": "theorem LeanProofs.false_claim : ∀ (n : ℕ), n + 1 = n :=\nfun n => Decidable.byContradiction fun a => sorry a",
+     "source": "/-- A false statement. The proof attempt is rejected. -/\ntheorem false_claim (n : ℕ) : n + 1 = n := by\n  omega",
+     "messages": [
+      {
+       "line": 7,
+       "col": 2,
+       "severity": "error",
+       "text": "omega could not prove the goal:\na possible counterexample may satisfy the constraints\n  a ≥ 0\nwhere\n a := ↑n"
+      }
+     ]
+    },
+    {
+     "name": "with_a_gap",
+     "kind": "theorem",
+     "doc_line": 9,
+     "line": 11,
+     "end": 12,
+     "full_name": "LeanProofs.with_a_gap",
+     "steps": [
+      {
+       "line": 12,
+       "before": "n : ℕ\n⊢ n * 0 = 0",
+       "after": ""
+      }
+     ],
+     "axioms": [
+      "sorryAx"
+     ],
+     "term": "theorem LeanProofs.with_a_gap : ∀ (n : ℕ), n * 0 = 0 :=\nfun n => sorry",
+     "source": "/-- A true statement with a gap: `sorry` tells Lean \"trust me\". Lean\naccepts the file with a warning, and `#print axioms` exposes the gap. -/\ntheorem with_a_gap (n : ℕ) : n * 0 = 0 := by\n  sorry",
+     "messages": [
+      {
+       "line": 11,
+       "col": 8,
+       "severity": "warning",
+       "text": "declaration uses `sorry`"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "file": "lean/LeanProofs/Euclid.lean",
+   "module": "LeanProofs.Euclid",
+   "sha256": "462656d5247cfe7da6ac8f2e43dd557d3d0bd5bb22c0fe52fc80904b8e999fb6",
+   "source": "import Mathlib\n\nnamespace LeanProofs\n\n/-- Euclid: for every `n` there is a prime `p ≥ n`. So there are\ninfinitely many primes.\n\nThe idea: let `p` be the smallest prime factor of `n! + 1`. If `p < n`,\nthen `p` divides `n!`, and also `n! + 1`, so it divides `1`.\nThat is impossible. -/\ntheorem exists_prime_ge (n : ℕ) : ∃ p, n ≤ p ∧ p.Prime := by\n  have hpos : 0 < n.factorial := Nat.factorial_pos n\n  have hne : n.factorial + 1 ≠ 1 := by omega\n  let p := Nat.minFac (n.factorial + 1)\n  have hp : p.Prime := Nat.minFac_prime hne\n  refine ⟨p, ?_, hp⟩\n  by_contra hlt\n  rw [not_le] at hlt\n  have h1 : p ∣ n.factorial := Nat.dvd_factorial hp.pos hlt.le\n  have h2 : p ∣ n.factorial + 1 := Nat.minFac_dvd (n.factorial + 1)\n  have h3 : p ∣ 1 := (Nat.dvd_add_right h1).mp h2\n  exact hp.one_lt.ne' (Nat.dvd_one.mp h3)\n\n/-- The same fact, stated as \"the set of primes is infinite\", and proved by\nlooking the result up in Mathlib. -/\ntheorem primes_infinite : {p : ℕ | p.Prime}.Infinite :=\n  Nat.infinite_setOfPred_prime\n\nend LeanProofs",
+   "expected_to_fail": false,
+   "lean_exit_code": 0,
+   "errors": 0,
+   "warnings": 0,
+   "messages": [],
+   "declarations": [
+    {
+     "name": "exists_prime_ge",
+     "kind": "theorem",
+     "doc_line": 5,
+     "line": 11,
+     "end": 22,
+     "full_name": "LeanProofs.exists_prime_ge",
+     "steps": [
+      {
+       "line": 12,
+       "before": "n : ℕ\n⊢ ∃ p, n ≤ p ∧ Nat.Prime p",
+       "after": "n : ℕ\nhpos : 0 < n.factorial\n⊢ ∃ p, n ≤ p ∧ Nat.Prime p"
+      },
+      {
+       "line": 13,
+       "before": "n : ℕ\nhpos : 0 < n.factorial\n⊢ ∃ p, n ≤ p ∧ Nat.Prime p",
+       "after": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\n⊢ ∃ p, n ≤ p ∧ Nat.Prime p"
+      },
+      {
+       "line": 14,
+       "before": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\n⊢ ∃ p, n ≤ p ∧ Nat.Prime p",
+       "after": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\n⊢ ∃ p, n ≤ p ∧ Nat.Prime p"
+      },
+      {
+       "line": 15,
+       "before": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\n⊢ ∃ p, n ≤ p ∧ Nat.Prime p",
+       "after": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\n⊢ ∃ p, n ≤ p ∧ Nat.Prime p"
+      },
+      {
+       "line": 16,
+       "before": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\n⊢ ∃ p, n ≤ p ∧ Nat.Prime p",
+       "after": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\n⊢ n ≤ p"
+      },
+      {
+       "line": 17,
+       "before": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\n⊢ n ≤ p",
+       "after": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\nhlt : ¬n ≤ p\n⊢ False"
+      },
+      {
+       "line": 18,
+       "before": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\nhlt : ¬n ≤ p\n⊢ False",
+       "after": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\nhlt : p < n\n⊢ False"
+      },
+      {
+       "line": 19,
+       "before": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\nhlt : p < n\n⊢ False",
+       "after": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\nhlt : p < n\nh1 : p ∣ n.factorial\n⊢ False"
+      },
+      {
+       "line": 20,
+       "before": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\nhlt : p < n\nh1 : p ∣ n.factorial\n⊢ False",
+       "after": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\nhlt : p < n\nh1 : p ∣ n.factorial\nh2 : p ∣ n.factorial + 1\n⊢ False"
+      },
+      {
+       "line": 21,
+       "before": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\nhlt : p < n\nh1 : p ∣ n.factorial\nh2 : p ∣ n.factorial + 1\n⊢ False",
+       "after": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\nhlt : p < n\nh1 : p ∣ n.factorial\nh2 : p ∣ n.factorial + 1\nh3 : p ∣ 1\n⊢ False"
+      },
+      {
+       "line": 22,
+       "before": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\nhlt : p < n\nh1 : p ∣ n.factorial\nh2 : p ∣ n.factorial + 1\nh3 : p ∣ 1\n⊢ False",
+       "after": ""
+      }
+     ],
+     "axioms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+     ],
+     "term": "theorem LeanProofs.exists_prime_ge : ∀ (n : ℕ), ∃ p, n ≤ p ∧ Nat.Prime p :=\nfun n =>\n  have hpos := Nat.factorial_pos n;\n  have hne := fun a => LeanProofs.exists_prime_ge._proof_1_1 n hpos a;\n  let p := (n.factorial + 1).minFac;\n  have hp := Nat.minFac_prime hne;\n  Exists.intro p\n    ⟨Decidable.byContradiction fun hlt =>\n        have h1 :=\n          Nat.dvd_factorial (Nat.Prime.pos hp) (LT.lt.le (Eq.mp (congrArg (fun _a => _a) (propext not_le)) hlt));\n        have h2 := Nat.minFac_dvd (n.factorial + 1);\n        have h3 := (Nat.dvd_add_right h1).mp h2;\n        LT.lt.ne' (Nat.Prime.one_lt hp) (Nat.dvd_one.mp h3),\n      hp⟩",
+     "source": "/-- Euclid: for every `n` there is a prime `p ≥ n`. So there are\ninfinitely many primes.\n\nThe idea: let `p` be the smallest prime factor of `n! + 1`. If `p < n`,\nthen `p` divides `n!`, and also `n! + 1`, so it divides `1`.\nThat is impossible. -/\ntheorem exists_prime_ge (n : ℕ) : ∃ p, n ≤ p ∧ p.Prime := by\n  have hpos : 0 < n.factorial := Nat.factorial_pos n\n  have hne : n.factorial + 1 ≠ 1 := by omega\n  let p := Nat.minFac (n.factorial + 1)\n  have hp : p.Prime := Nat.minFac_prime hne\n  refine ⟨p, ?_, hp⟩\n  by_contra hlt\n  rw [not_le] at hlt\n  have h1 : p ∣ n.factorial := Nat.dvd_factorial hp.pos hlt.le\n  have h2 : p ∣ n.factorial + 1 := Nat.minFac_dvd (n.factorial + 1)\n  have h3 : p ∣ 1 := (Nat.dvd_add_right h1).mp h2\n  exact hp.one_lt.ne' (Nat.dvd_one.mp h3)",
+     "messages": []
+    },
+    {
+     "name": "primes_infinite",
+     "kind": "theorem",
+     "doc_line": 24,
+     "line": 26,
+     "end": 27,
+     "full_name": "LeanProofs.primes_infinite",
+     "steps": [],
+     "axioms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+     ],
+     "term": "theorem LeanProofs.primes_infinite : {p | Nat.Prime p}.Infinite :=\nNat.infinite_setOfPred_prime",
+     "source": "/-- The same fact, stated as \"the set of primes is infinite\", and proved by\nlooking the result up in Mathlib. -/\ntheorem primes_infinite : {p : ℕ | p.Prime}.Infinite :=\n  Nat.infinite_setOfPred_prime",
+     "messages": []
+    }
+   ]
+  },
+  {
+   "file": "lean/LeanProofs/IdentityUnique.lean",
+   "module": "LeanProofs.IdentityUnique",
+   "sha256": "aef273808094523582efe1e38e2acf34d70cb8bd65f2e0753a458ebb1438fbc5",
+   "source": "import Mathlib\n\nnamespace LeanProofs\n\n/-- If `e` and `e'` are both two-sided identities for a multiplication,\nthen `e = e'`. Only a multiplication `*` is assumed: no associativity,\nno inverses. -/\ntheorem identity_unique {M : Type*} [Mul M] (e e' : M)\n    (he : ∀ a : M, e * a = a ∧ a * e = a)\n    (he' : ∀ a : M, e' * a = a ∧ a * e' = a) :\n    e = e' := by\n  have h1 : e * e' = e' := (he e').1\n  have h2 : e * e' = e := (he' e).2\n  rw [← h2]\n  exact h1\n\n/-- In a group, an element that acts as a left identity on even one\nelement must be the identity `1` of the group. -/\ntheorem eq_one_of_mul_left {G : Type*} [Group G] (e a : G)\n    (h : e * a = a) :\n    e = 1 := by\n  have h2 : e * a * a⁻¹ = a * a⁻¹ := by rw [h]\n  rw [mul_assoc] at h2\n  rw [mul_inv_cancel] at h2\n  rw [mul_one] at h2\n  exact h2\n\nend LeanProofs",
+   "expected_to_fail": false,
+   "lean_exit_code": 0,
+   "errors": 0,
+   "warnings": 0,
+   "messages": [],
+   "declarations": [
+    {
+     "name": "identity_unique",
+     "kind": "theorem",
+     "doc_line": 5,
+     "line": 8,
+     "end": 15,
+     "full_name": "LeanProofs.identity_unique",
+     "steps": [
+      {
+       "line": 12,
+       "before": "M : Type u_1\ninst✝ : Mul M\ne e' : M\nhe : ∀ (a : M), e * a = a ∧ a * e = a\nhe' : ∀ (a : M), e' * a = a ∧ a * e' = a\n⊢ e = e'",
+       "after": "M : Type u_1\ninst✝ : Mul M\ne e' : M\nhe : ∀ (a : M), e * a = a ∧ a * e = a\nhe' : ∀ (a : M), e' * a = a ∧ a * e' = a\nh1 : e * e' = e'\n⊢ e = e'"
+      },
+      {
+       "line": 13,
+       "before": "M : Type u_1\ninst✝ : Mul M\ne e' : M\nhe : ∀ (a : M), e * a = a ∧ a * e = a\nhe' : ∀ (a : M), e' * a = a ∧ a * e' = a\nh1 : e * e' = e'\n⊢ e = e'",
+       "after": "M : Type u_1\ninst✝ : Mul M\ne e' : M\nhe : ∀ (a : M), e * a = a ∧ a * e = a\nhe' : ∀ (a : M), e' * a = a ∧ a * e' = a\nh1 : e * e' = e'\nh2 : e * e' = e\n⊢ e = e'"
+      },
+      {
+       "line": 14,
+       "before": "M : Type u_1\ninst✝ : Mul M\ne e' : M\nhe : ∀ (a : M), e * a = a ∧ a * e = a\nhe' : ∀ (a : M), e' * a = a ∧ a * e' = a\nh1 : e * e' = e'\nh2 : e * e' = e\n⊢ e = e'",
+       "after": "M : Type u_1\ninst✝ : Mul M\ne e' : M\nhe : ∀ (a : M), e * a = a ∧ a * e = a\nhe' : ∀ (a : M), e' * a = a ∧ a * e' = a\nh1 : e * e' = e'\nh2 : e * e' = e\n⊢ e * e' = e'"
+      },
+      {
+       "line": 15,
+       "before": "M : Type u_1\ninst✝ : Mul M\ne e' : M\nhe : ∀ (a : M), e * a = a ∧ a * e = a\nhe' : ∀ (a : M), e' * a = a ∧ a * e' = a\nh1 : e * e' = e'\nh2 : e * e' = e\n⊢ e * e' = e'",
+       "after": ""
+      }
+     ],
+     "axioms": [],
+     "term": "theorem LeanProofs.identity_unique.{u_1} : ∀ {M : Type u_1} [inst : Mul M] (e e' : M),\n  (∀ (a : M), e * a = a ∧ a * e = a) → (∀ (a : M), e' * a = a ∧ a * e' = a) → e = e' :=\nfun {M} [Mul M] e e' he he' =>\n  have h1 := (he e').left;\n  have h2 := (he' e).right;\n  Eq.mpr (id (congrArg (fun _a => _a = e') (Eq.symm h2))) h1",
+     "source": "/-- If `e` and `e'` are both two-sided identities for a multiplication,\nthen `e = e'`. Only a multiplication `*` is assumed: no associativity,\nno inverses. -/\ntheorem identity_unique {M : Type*} [Mul M] (e e' : M)\n    (he : ∀ a : M, e * a = a ∧ a * e = a)\n    (he' : ∀ a : M, e' * a = a ∧ a * e' = a) :\n    e = e' := by\n  have h1 : e * e' = e' := (he e').1\n  have h2 : e * e' = e := (he' e).2\n  rw [← h2]\n  exact h1",
+     "messages": []
+    },
+    {
+     "name": "eq_one_of_mul_left",
+     "kind": "theorem",
+     "doc_line": 17,
+     "line": 19,
+     "end": 26,
+     "full_name": "LeanProofs.eq_one_of_mul_left",
+     "steps": [
+      {
+       "line": 22,
+       "before": "G : Type u_1\ninst✝ : Group G\ne a : G\nh : e * a = a\n⊢ e = 1",
+       "after": "G : Type u_1\ninst✝ : Group G\ne a : G\nh : e * a = a\nh2 : e * a * a⁻¹ = a * a⁻¹\n⊢ e = 1"
+      },
+      {
+       "line": 23,
+       "before": "G : Type u_1\ninst✝ : Group G\ne a : G\nh : e * a = a\nh2 : e * a * a⁻¹ = a * a⁻¹\n⊢ e = 1",
+       "after": "G : Type u_1\ninst✝ : Group G\ne a : G\nh : e * a = a\nh2 : e * (a * a⁻¹) = a * a⁻¹\n⊢ e = 1"
+      },
+      {
+       "line": 24,
+       "before": "G : Type u_1\ninst✝ : Group G\ne a : G\nh : e * a = a\nh2 : e * (a * a⁻¹) = a * a⁻¹\n⊢ e = 1",
+       "after": "G : Type u_1\ninst✝ : Group G\ne a : G\nh : e * a = a\nh2 : e * 1 = 1\n⊢ e = 1"
+      },
+      {
+       "line": 25,
+       "before": "G : Type u_1\ninst✝ : Group G\ne a : G\nh : e * a = a\nh2 : e * 1 = 1\n⊢ e = 1",
+       "after": "G : Type u_1\ninst✝ : Group G\ne a : G\nh : e * a = a\nh2 : e = 1\n⊢ e = 1"
+      },
+      {
+       "line": 26,
+       "before": "G : Type u_1\ninst✝ : Group G\ne a : G\nh : e * a = a\nh2 : e = 1\n⊢ e = 1",
+       "after": ""
+      }
+     ],
+     "axioms": [
+      "propext"
+     ],
+     "term": "theorem LeanProofs.eq_one_of_mul_left.{u_1} : ∀ {G : Type u_1} [inst : Group G] (e a : G), e * a = a → e = 1 :=\nfun {G} [Group G] e a h =>\n  have h2 := Eq.mpr (id (congrArg (fun _a => _a * a⁻¹ = a * a⁻¹) h)) (Eq.refl (a * a⁻¹));\n  Eq.mp (congrArg (fun _a => _a = 1) (mul_one e))\n    (Eq.mp (congrArg (fun _a => e * _a = _a) (mul_inv_cancel a))\n      (Eq.mp (congrArg (fun _a => _a = a * a⁻¹) (mul_assoc e a a⁻¹)) h2))",
+     "source": "/-- In a group, an element that acts as a left identity on even one\nelement must be the identity `1` of the group. -/\ntheorem eq_one_of_mul_left {G : Type*} [Group G] (e a : G)\n    (h : e * a = a) :\n    e = 1 := by\n  have h2 : e * a * a⁻¹ = a * a⁻¹ := by rw [h]\n  rw [mul_assoc] at h2\n  rw [mul_inv_cancel] at h2\n  rw [mul_one] at h2\n  exact h2",
+     "messages": []
+    }
+   ]
+  },
+  {
+   "file": "lean/LeanProofs/InjectiveComp.lean",
+   "module": "LeanProofs.InjectiveComp",
+   "sha256": "694ef98f29d2134ba6adfb40a694373f9a8832ebc8d18fd034c5af81f57bfc52",
+   "source": "import Mathlib\n\nnamespace LeanProofs\n\nopen Function\n\n/-- A composition of injective functions is injective. -/\ntheorem injective_comp {α β γ : Type*} {f : α → β} {g : β → γ}\n    (hf : Injective f) (hg : Injective g) :\n    Injective (g ∘ f) := by\n  intro x y h\n  apply hf\n  apply hg\n  exact h\n\nend LeanProofs",
+   "expected_to_fail": false,
+   "lean_exit_code": 0,
+   "errors": 0,
+   "warnings": 0,
+   "messages": [],
+   "declarations": [
+    {
+     "name": "injective_comp",
+     "kind": "theorem",
+     "doc_line": 7,
+     "line": 8,
+     "end": 14,
+     "full_name": "LeanProofs.injective_comp",
+     "steps": [
+      {
+       "line": 11,
+       "before": "α : Type u_1\nβ : Type u_2\nγ : Type u_3\nf : α → β\ng : β → γ\nhf : Injective f\nhg : Injective g\n⊢ Injective (g ∘ f)",
+       "after": "α : Type u_1\nβ : Type u_2\nγ : Type u_3\nf : α → β\ng : β → γ\nhf : Injective f\nhg : Injective g\nx y : α\nh : (g ∘ f) x = (g ∘ f) y\n⊢ x = y"
+      },
+      {
+       "line": 12,
+       "before": "α : Type u_1\nβ : Type u_2\nγ : Type u_3\nf : α → β\ng : β → γ\nhf : Injective f\nhg : Injective g\nx y : α\nh : (g ∘ f) x = (g ∘ f) y\n⊢ x = y",
+       "after": "α : Type u_1\nβ : Type u_2\nγ : Type u_3\nf : α → β\ng : β → γ\nhf : Injective f\nhg : Injective g\nx y : α\nh : (g ∘ f) x = (g ∘ f) y\n⊢ f x = f y"
+      },
+      {
+       "line": 13,
+       "before": "α : Type u_1\nβ : Type u_2\nγ : Type u_3\nf : α → β\ng : β → γ\nhf : Injective f\nhg : Injective g\nx y : α\nh : (g ∘ f) x = (g ∘ f) y\n⊢ f x = f y",
+       "after": "α : Type u_1\nβ : Type u_2\nγ : Type u_3\nf : α → β\ng : β → γ\nhf : Injective f\nhg : Injective g\nx y : α\nh : (g ∘ f) x = (g ∘ f) y\n⊢ g (f x) = g (f y)"
+      },
+      {
+       "line": 14,
+       "before": "α : Type u_1\nβ : Type u_2\nγ : Type u_3\nf : α → β\ng : β → γ\nhf : Injective f\nhg : Injective g\nx y : α\nh : (g ∘ f) x = (g ∘ f) y\n⊢ g (f x) = g (f y)",
+       "after": ""
+      }
+     ],
+     "axioms": [],
+     "term": "theorem LeanProofs.injective_comp.{u_1, u_2, u_3} : ∀ {α : Type u_1} {β : Type u_2} {γ : Type u_3} {f : α → β}\n  {g : β → γ}, Function.Injective f → Function.Injective g → Function.Injective (g ∘ f) :=\nfun {α} {β} {γ} {f} {g} hf hg ⦃x y⦄ h => hf (hg h)",
+     "source": "/-- A composition of injective functions is injective. -/\ntheorem injective_comp {α β γ : Type*} {f : α → β} {g : β → γ}\n    (hf : Injective f) (hg : Injective g) :\n    Injective (g ∘ f) := by\n  intro x y h\n  apply hf\n  apply hg\n  exact h",
+     "messages": []
+    }
+   ]
+  },
+  {
+   "file": "lean/LeanProofs/InverseUnique.lean",
+   "module": "LeanProofs.InverseUnique",
+   "sha256": "14429307c61372612fd7c437f5dbc67bab6f62a8cec16033742019f82c24a18e",
+   "source": "import Mathlib\n\nnamespace LeanProofs\n\nvariable {G : Type*} [Group G]\n\n/-- Inverses in a group are unique: if `a * b = 1` then `b = a⁻¹`.\nWritten as a `calc` chain, the way it is written on paper. -/\ntheorem inv_unique_calc (a b : G) (h : a * b = 1) : b = a⁻¹ := by\n  calc b = 1 * b := by rw [one_mul]\n    _ = (a⁻¹ * a) * b := by rw [inv_mul_cancel]\n    _ = a⁻¹ * (a * b) := by rw [mul_assoc]\n    _ = a⁻¹ * 1 := by rw [h]\n    _ = a⁻¹ := by rw [mul_one]\n\n/-- The same theorem, proved by rewriting the hypothesis step by step. -/\ntheorem inv_unique (a b : G) (h : a * b = 1) : b = a⁻¹ := by\n  have h2 : a⁻¹ * (a * b) = a⁻¹ * 1 := by rw [h]\n  rw [← mul_assoc] at h2\n  rw [inv_mul_cancel] at h2\n  rw [one_mul] at h2\n  rw [mul_one] at h2\n  exact h2\n\nend LeanProofs",
+   "expected_to_fail": false,
+   "lean_exit_code": 0,
+   "errors": 0,
+   "warnings": 0,
+   "messages": [],
+   "declarations": [
+    {
+     "name": "inv_unique_calc",
+     "kind": "theorem",
+     "doc_line": 7,
+     "line": 9,
+     "end": 14,
+     "full_name": "LeanProofs.inv_unique_calc",
+     "steps": [
+      {
+       "line": 10,
+       "before": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\n⊢ b = a⁻¹",
+       "after": ""
+      }
+     ],
+     "axioms": [
+      "propext"
+     ],
+     "term": "theorem LeanProofs.inv_unique_calc.{u_1} : ∀ {G : Type u_1} [inst : Group G] (a b : G), a * b = 1 → b = a⁻¹ :=\nfun {G} [Group G] a b h =>\n  Trans.trans\n    (Trans.trans\n      (Trans.trans\n        (Trans.trans (Eq.mpr (id (congrArg (fun _a => b = _a) (one_mul b))) (Eq.refl b))\n          (Eq.mpr (id (congrArg (fun _a => 1 * b = _a * b) (inv_mul_cancel a))) (Eq.refl (1 * b))))\n        (Eq.mpr (id (congrArg (fun _a => _a = a⁻¹ * (a * b)) (mul_assoc a⁻¹ a b))) (Eq.refl (a⁻¹ * (a * b)))))\n      (Eq.mpr (id (congrArg (fun _a => a⁻¹ * _a = a⁻¹ * 1) h)) (Eq.refl (a⁻¹ * 1))))\n    (Eq.mpr (id (congrArg (fun _a => _a = a⁻¹) (mul_one a⁻¹))) (Eq.refl a⁻¹))",
+     "source": "/-- Inverses in a group are unique: if `a * b = 1` then `b = a⁻¹`.\nWritten as a `calc` chain, the way it is written on paper. -/\ntheorem inv_unique_calc (a b : G) (h : a * b = 1) : b = a⁻¹ := by\n  calc b = 1 * b := by rw [one_mul]\n    _ = (a⁻¹ * a) * b := by rw [inv_mul_cancel]\n    _ = a⁻¹ * (a * b) := by rw [mul_assoc]\n    _ = a⁻¹ * 1 := by rw [h]\n    _ = a⁻¹ := by rw [mul_one]",
+     "messages": []
+    },
+    {
+     "name": "inv_unique",
+     "kind": "theorem",
+     "doc_line": 16,
+     "line": 17,
+     "end": 23,
+     "full_name": "LeanProofs.inv_unique",
+     "steps": [
+      {
+       "line": 18,
+       "before": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\n⊢ b = a⁻¹",
+       "after": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\nh2 : a⁻¹ * (a * b) = a⁻¹ * 1\n⊢ b = a⁻¹"
+      },
+      {
+       "line": 19,
+       "before": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\nh2 : a⁻¹ * (a * b) = a⁻¹ * 1\n⊢ b = a⁻¹",
+       "after": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\nh2 : a⁻¹ * a * b = a⁻¹ * 1\n⊢ b = a⁻¹"
+      },
+      {
+       "line": 20,
+       "before": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\nh2 : a⁻¹ * a * b = a⁻¹ * 1\n⊢ b = a⁻¹",
+       "after": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\nh2 : 1 * b = a⁻¹ * 1\n⊢ b = a⁻¹"
+      },
+      {
+       "line": 21,
+       "before": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\nh2 : 1 * b = a⁻¹ * 1\n⊢ b = a⁻¹",
+       "after": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\nh2 : b = a⁻¹ * 1\n⊢ b = a⁻¹"
+      },
+      {
+       "line": 22,
+       "before": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\nh2 : b = a⁻¹ * 1\n⊢ b = a⁻¹",
+       "after": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\nh2 : b = a⁻¹\n⊢ b = a⁻¹"
+      },
+      {
+       "line": 23,
+       "before": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\nh2 : b = a⁻¹\n⊢ b = a⁻¹",
+       "after": ""
+      }
+     ],
+     "axioms": [
+      "propext"
+     ],
+     "term": "theorem LeanProofs.inv_unique.{u_1} : ∀ {G : Type u_1} [inst : Group G] (a b : G), a * b = 1 → b = a⁻¹ :=\nfun {G} [Group G] a b h =>\n  have h2 := Eq.mpr (id (congrArg (fun _a => a⁻¹ * _a = a⁻¹ * 1) h)) (Eq.refl (a⁻¹ * 1));\n  Eq.mp (congrArg (fun _a => b = _a) (mul_one a⁻¹))\n    (Eq.mp (congrArg (fun _a => _a = a⁻¹ * 1) (one_mul b))\n      (Eq.mp (congrArg (fun _a => _a * b = a⁻¹ * 1) (inv_mul_cancel a))\n        (Eq.mp (congrArg (fun _a => _a = a⁻¹ * 1) (Eq.symm (mul_assoc a⁻¹ a b))) h2)))",
+     "source": "/-- The same theorem, proved by rewriting the hypothesis step by step. -/\ntheorem inv_unique (a b : G) (h : a * b = 1) : b = a⁻¹ := by\n  have h2 : a⁻¹ * (a * b) = a⁻¹ * 1 := by rw [h]\n  rw [← mul_assoc] at h2\n  rw [inv_mul_cancel] at h2\n  rw [one_mul] at h2\n  rw [mul_one] at h2\n  exact h2",
+     "messages": []
+    }
+   ]
+  },
+  {
+   "file": "lean/LeanProofs/MathlibLemmas.lean",
+   "module": "LeanProofs.MathlibLemmas",
+   "sha256": "85e21fd898623233ea41f5cd1577604cb0d2a903ea0dde8eb6258dc996144bfa",
+   "source": "import Mathlib\n\n/-! The Mathlib lemmas used in the examples, as Lean itself states them. -/\n\n#check @mul_one\n#check @one_mul\n#check @mul_assoc\n#check @inv_mul_cancel\n#check @mul_inv_cancel\n#check @Nat.add_succ\n#check @Nat.minFac_prime\n#check @Nat.minFac_dvd\n#check @Nat.dvd_factorial\n#check @Nat.dvd_add_right\n#check @Nat.infinite_setOfPred_prime\n#check @Function.Injective",
+   "expected_to_fail": false,
+   "lean_exit_code": 0,
+   "errors": 0,
+   "warnings": 0,
+   "messages": [
+    {
+     "line": 5,
+     "col": 0,
+     "severity": "information",
+     "text": "@mul_one : ∀ {M : Type u_1} [inst : MulOneClass M] (a : M), a * 1 = a"
+    },
+    {
+     "line": 6,
+     "col": 0,
+     "severity": "information",
+     "text": "@one_mul : ∀ {M : Type u_1} [inst : MulOneClass M] (a : M), 1 * a = a"
+    },
+    {
+     "line": 7,
+     "col": 0,
+     "severity": "information",
+     "text": "@mul_assoc : ∀ {G : Type u_1} [inst : Semigroup G] (a b c : G), a * b * c = a * (b * c)"
+    },
+    {
+     "line": 8,
+     "col": 0,
+     "severity": "information",
+     "text": "@inv_mul_cancel : ∀ {G : Type u_1} [inst : Group G] (a : G), a⁻¹ * a = 1"
+    },
+    {
+     "line": 9,
+     "col": 0,
+     "severity": "information",
+     "text": "@mul_inv_cancel : ∀ {G : Type u_1} [inst : Group G] (a : G), a * a⁻¹ = 1"
+    },
+    {
+     "line": 10,
+     "col": 0,
+     "severity": "information",
+     "text": "Nat.add_succ : ∀ (n m : ℕ), n + m.succ = (n + m).succ"
+    },
+    {
+     "line": 11,
+     "col": 0,
+     "severity": "information",
+     "text": "@Nat.minFac_prime : ∀ {n : ℕ}, n ≠ 1 → Nat.Prime n.minFac"
+    },
+    {
+     "line": 12,
+     "col": 0,
+     "severity": "information",
+     "text": "Nat.minFac_dvd : ∀ (n : ℕ), n.minFac ∣ n"
+    },
+    {
+     "line": 13,
+     "col": 0,
+     "severity": "information",
+     "text": "@Nat.dvd_factorial : ∀ {m n : ℕ}, 0 < m → m ≤ n → m ∣ n.factorial"
+    },
+    {
+     "line": 14,
+     "col": 0,
+     "severity": "information",
+     "text": "@Nat.dvd_add_right : ∀ {a b c : ℕ}, a ∣ b → (a ∣ b + c ↔ a ∣ c)"
+    },
+    {
+     "line": 15,
+     "col": 0,
+     "severity": "information",
+     "text": "Nat.infinite_setOfPred_prime : {p | Nat.Prime p}.Infinite"
+    },
+    {
+     "line": 16,
+     "col": 0,
+     "severity": "information",
+     "text": "@Function.Injective : {α : Sort u_1} → {β : Sort u_2} → (α → β) → Prop"
+    }
+   ],
+   "declarations": []
+  }
+ ]
+}

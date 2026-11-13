@@ -1,0 +1,917 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Proofs a Computer Checks</title>
+<meta name="description" content="What proof formalization, Lean, Mathlib and a proof certificate are, through small machine-checked proofs you can step through.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2327408B'/%3E%3Cpath d='M9 7v18M9 16h14' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme: light dark;
+  --paper:#F3F5F8; --surface:#FFFFFF; --surface-2:#FAFBFD;
+  --ink:#141922; --body:#2C3442; --muted:#5D6779; --faint:#8B94A5;
+  --line:#DCE1E9; --line-soft:#E9ECF2;
+  --accent:#27408B; --accent-soft:#E7ECF8;
+  --flaw:#9B2334; --flaw-soft:#FBEAEC;
+  --cost:#8A5712; --cost-soft:#FBF1E2;
+  --holds:#1C6354; --holds-soft:#E4F1ED;
+  --code-bg:#F7F8FB; --hl-line:#FFF6D6; --hl-gutter:#E8B93A;
+  --tk-kw:#7A2E8E; --tk-tac:#27408B; --tk-cm:#6F7A8C; --tk-ty:#1C6354; --tk-num:#8A5712; --tk-sorry:#9B2334;
+  --shadow:0 1px 2px rgba(20,25,34,.05), 0 8px 24px -12px rgba(20,25,34,.14);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#10141B; --surface:#171D27; --surface-2:#1C2330;
+    --ink:#EEF1F6; --body:#C7CEDA; --muted:#98A2B3; --faint:#6C7789;
+    --line:#2A3342; --line-soft:#222A37;
+    --accent:#9DB4F0; --accent-soft:#1D2740;
+    --flaw:#F2919C; --flaw-soft:#2E1A1E;
+    --cost:#E0AE63; --cost-soft:#2C2317;
+    --holds:#7BC9B4; --holds-soft:#152A26;
+    --code-bg:#131922; --hl-line:#2B2716; --hl-gutter:#C9A13A;
+    --tk-kw:#D59BE6; --tk-tac:#9DB4F0; --tk-cm:#7D889A; --tk-ty:#7BC9B4; --tk-num:#E0AE63; --tk-sorry:#F2919C;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#10141B; --surface:#171D27; --surface-2:#1C2330;
+  --ink:#EEF1F6; --body:#C7CEDA; --muted:#98A2B3; --faint:#6C7789;
+  --line:#2A3342; --line-soft:#222A37;
+  --accent:#9DB4F0; --accent-soft:#1D2740;
+  --flaw:#F2919C; --flaw-soft:#2E1A1E;
+  --cost:#E0AE63; --cost-soft:#2C2317;
+  --holds:#7BC9B4; --holds-soft:#152A26;
+  --code-bg:#131922; --hl-line:#2B2716; --hl-gutter:#C9A13A;
+  --tk-kw:#D59BE6; --tk-tac:#9DB4F0; --tk-cm:#7D889A; --tk-ty:#7BC9B4; --tk-num:#E0AE63; --tk-sorry:#F2919C;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%; scroll-behavior:smooth; scroll-padding-top:64px}
+body{
+  margin:0; background:var(--paper); color:var(--body);
+  font-family:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1140px; margin:0 auto; padding-inline:16px}
+@media (min-width:700px){ .wrap{padding-inline:24px} }
+h1,h2,h3,h4{font-family:Spectral, Georgia, "Times New Roman", serif; color:var(--ink); text-wrap:balance; margin:0}
+p{margin:0 0 14px}
+a{color:var(--accent)}
+code,.mono{font-family:"IBM Plex Mono","DejaVu Sans Mono",ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.9em}
+p code, li code, td code, .prose code{background:var(--surface-2); border:1px solid var(--line-soft); border-radius:3px; padding:0 4px; white-space:nowrap}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:3px}
+[hidden]{display:none !important}
+/* grid children may shrink below their content (code scrolls inside its own box) */
+.grid2 > *, .grid3 > *, .stepper > *, .anat > *, .exhead > *, .teaser > *, .pipe > *{min-width:0}
+
+/* ---------- nav ---------- */
+.topnav{position:sticky; top:0; z-index:20; background:color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border-bottom:1px solid var(--line)}
+.topnav .wrap{display:flex; align-items:center; gap:14px; height:52px}
+.brand{font-family:Spectral,Georgia,serif; font-weight:700; color:var(--ink); text-decoration:none; white-space:nowrap; font-size:17px}
+@media (max-width:520px){ .brand{display:none} }
+.navlinks{display:flex; gap:2px; overflow-x:auto; scrollbar-width:none; flex:1; min-width:0}
+.navlinks::-webkit-scrollbar{display:none}
+.navlinks a{font-size:13.5px; color:var(--muted); text-decoration:none; padding:6px 9px; border-radius:5px; white-space:nowrap}
+.navlinks a:hover{color:var(--ink); background:var(--surface)}
+.navlinks a.on{color:var(--accent); background:var(--accent-soft)}
+.themebtn{border:1px solid var(--line); background:var(--surface); color:var(--muted); border-radius:6px; height:30px; min-width:30px; cursor:pointer; font:inherit; font-size:14px}
+
+/* ---------- masthead ---------- */
+.mast{padding-block:56px 40px; border-bottom:1px solid var(--line)}
+.eyebrow{font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); font-weight:500; margin-bottom:14px}
+h1{font-size:clamp(34px,5.6vw,54px); font-weight:700; line-height:1.07; letter-spacing:-.015em}
+.standfirst{margin-top:18px; max-width:66ch; font-size:18px; color:var(--muted); font-family:Spectral, Georgia, serif}
+.standfirst em{color:var(--ink)}
+.teaser{display:grid; gap:16px; margin-top:34px; grid-template-columns:1fr}
+@media (min-width:880px){ .teaser{grid-template-columns:minmax(0,5fr) minmax(0,7fr)} }
+.tcard{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:18px 20px; box-shadow:var(--shadow); min-width:0}
+.tcard .lbl{font-size:11.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); font-weight:600; margin-bottom:10px}
+.tcard .paper{font-family:Spectral,Georgia,serif; font-size:17px; color:var(--ink)}
+.tcard .paper p{margin-bottom:10px}
+
+/* ---------- sections ---------- */
+section.sec{padding-block:56px; border-bottom:1px solid var(--line)}
+.sechead{display:flex; gap:14px; align-items:baseline; margin-bottom:22px}
+.secnum{font-family:"IBM Plex Mono",monospace; font-size:13px; color:var(--faint)}
+h2{font-size:clamp(26px,3.6vw,36px); font-weight:700; letter-spacing:-.01em; line-height:1.15}
+h3{font-size:21px; font-weight:600; margin-bottom:8px}
+.prose{max-width:70ch; font-size:16.5px}
+.prose p{margin-bottom:16px}
+.lead{font-family:Spectral,Georgia,serif; font-size:19px; color:var(--ink); max-width:62ch}
+.grid2{display:grid; gap:18px; grid-template-columns:1fr}
+@media (min-width:860px){ .grid2{grid-template-columns:1fr 1fr} }
+.grid3{display:grid; gap:14px; grid-template-columns:1fr}
+@media (min-width:700px){ .grid3{grid-template-columns:repeat(2,1fr)} }
+@media (min-width:1000px){ .grid3{grid-template-columns:repeat(4,1fr)} }
+.card{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:18px 20px; min-width:0}
+.card h3{font-size:18px}
+.card p:last-child{margin-bottom:0}
+.card .yr{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--faint); display:block; margin-bottom:4px}
+.card.small p{font-size:14.5px; color:var(--muted)}
+.callout{border-left:3px solid var(--accent); background:var(--accent-soft); padding:12px 16px; border-radius:0 8px 8px 0; max-width:70ch; margin:18px 0}
+.callout.warn{border-color:var(--cost); background:var(--cost-soft)}
+.callout p:last-child{margin-bottom:0}
+
+/* pipeline diagram */
+.pipe{display:grid; gap:10px; grid-template-columns:1fr; margin:26px 0 8px; align-items:stretch}
+@media (min-width:900px){ .pipe{grid-template-columns:1fr auto 1fr auto 1fr auto 1fr} }
+.pbox{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px 16px; min-width:0}
+.pbox.trusted{border:2px solid var(--holds); background:var(--holds-soft)}
+.pbox .k{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); font-weight:600}
+.pbox.trusted .k{color:var(--holds)}
+.pbox b{display:block; font-family:Spectral,Georgia,serif; font-size:18px; color:var(--ink); margin:2px 0 4px}
+.pbox p{font-size:14px; color:var(--muted); margin:0}
+.parrow{align-self:center; justify-self:center; color:var(--faint); font-size:20px; line-height:1}
+@media (max-width:899px){ .parrow{transform:rotate(90deg)} }
+
+table.pat{border-collapse:collapse; width:100%; font-size:15px}
+table.pat th, table.pat td{text-align:left; padding:9px 10px; border-bottom:1px solid var(--line-soft); vertical-align:top}
+table.pat th{font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); font-weight:600}
+.tablewrap{overflow-x:auto; border:1px solid var(--line); border-radius:10px; background:var(--surface)}
+
+/* stats */
+.stats{display:grid; gap:12px; grid-template-columns:repeat(2,1fr); margin:22px 0}
+@media (min-width:800px){ .stats{grid-template-columns:repeat(4,1fr)} }
+.stat{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px 16px}
+.stat .v{font-family:Spectral,Georgia,serif; font-size:30px; font-weight:700; color:var(--ink); line-height:1.1; font-variant-numeric:tabular-nums}
+.stat .l{font-size:13px; color:var(--muted)}
+.fine{font-size:13px; color:var(--faint)}
+
+/* ---------- code ---------- */
+.code{background:var(--code-bg); border:1px solid var(--line); border-radius:10px; overflow-x:auto;
+  font-family:"IBM Plex Mono","DejaVu Sans Mono",ui-monospace,Menlo,monospace; font-size:13.5px; line-height:1.65; padding:10px 0}
+.code .ln{display:flex; min-width:max-content; padding-right:16px; border-left:3px solid transparent}
+.code .gut{display:inline-block; width:3.2em; flex:none; text-align:right; padding-right:1em; color:var(--faint); user-select:none; font-size:12px; padding-top:1px}
+.code .src{white-space:pre}
+.code .ln.step{cursor:pointer}
+.code .ln.step:hover{background:color-mix(in srgb, var(--hl-line) 55%, transparent)}
+.code .ln.step .gut::after{content:"•"; margin-left:3px; color:var(--hl-gutter); opacity:.55}
+.code .ln.active{background:var(--hl-line); border-left-color:var(--hl-gutter)}
+.code .ln.active .gut{color:var(--ink)}
+.code .ln.errline{background:var(--flaw-soft); border-left-color:var(--flaw)}
+.code .ln.warnline{background:var(--cost-soft); border-left-color:var(--cost)}
+.tk-kw{color:var(--tk-kw); font-weight:600}
+.tk-tac{color:var(--tk-tac); font-weight:500}
+.tk-cm{color:var(--tk-cm); font-style:italic}
+.tk-ty{color:var(--tk-ty)}
+.tk-num{color:var(--tk-num)}
+.tk-sorry{color:var(--tk-sorry); font-weight:600; text-decoration:underline wavy; text-underline-offset:3px}
+.msg{margin:2px 16px 8px calc(3.2em + 3px); padding:8px 12px; border-radius:6px; font-size:12.5px; white-space:pre-wrap; line-height:1.5; min-width:0}
+.msg.error{background:var(--flaw-soft); color:var(--flaw); border:1px solid color-mix(in srgb, var(--flaw) 35%, transparent)}
+.msg.warning{background:var(--cost-soft); color:var(--cost); border:1px solid color-mix(in srgb, var(--cost) 35%, transparent)}
+.msg .sev{font-weight:600; text-transform:uppercase; font-size:11px; letter-spacing:.08em; display:block; margin-bottom:2px}
+
+/* ---------- examples ---------- */
+.tabs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:22px}
+.tab{border:1px solid var(--line); background:var(--surface); color:var(--body); border-radius:999px; padding:7px 14px; font:inherit; font-size:14px; cursor:pointer}
+.tab:hover{border-color:var(--accent)}
+.tab[aria-selected="true"]{background:var(--accent); border-color:var(--accent); color:var(--surface); font-weight:500}
+.exhead{display:grid; gap:16px; grid-template-columns:1fr; margin-bottom:26px}
+@media (min-width:860px){ .exhead{grid-template-columns:1fr 1fr} }
+.exhead .card .lbl{font-size:11.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); font-weight:600; margin-bottom:6px}
+.exhead .card .math{font-family:Spectral,Georgia,serif; font-size:17px; color:var(--ink)}
+.decl{margin-top:30px}
+.decl > .intro{max-width:72ch; margin-bottom:14px}
+.decl h4{font-family:"IBM Plex Mono",monospace; font-size:15px; font-weight:600; color:var(--ink); margin-bottom:6px}
+.stepper{display:grid; gap:16px; grid-template-columns:1fr}
+@media (min-width:980px){ .stepper{grid-template-columns:minmax(0,7fr) minmax(0,5fr)} }
+.infoview{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px 16px; min-width:0; display:flex; flex-direction:column; gap:12px}
+@media (min-width:980px){ .infoview{position:sticky; top:70px; align-self:start} }
+.ivhead{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap}
+.ivhead .k{font-size:11.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); font-weight:600}
+.ivhead .where{font-size:13px; color:var(--muted)}
+.controls{display:flex; gap:6px; align-items:center}
+.controls button{border:1px solid var(--line); background:var(--surface-2); color:var(--ink); border-radius:6px; min-width:36px; height:32px; font:inherit; font-size:14px; cursor:pointer; padding:0 10px}
+.controls button:hover:not(:disabled){border-color:var(--accent); color:var(--accent)}
+.controls button:disabled{opacity:.4; cursor:default}
+.controls .count{font-size:12.5px; color:var(--faint); font-variant-numeric:tabular-nums; min-width:4.5em; text-align:center}
+.goals{font-family:"IBM Plex Mono",monospace; font-size:13px; line-height:1.6; background:var(--code-bg); border:1px solid var(--line-soft); border-radius:8px; padding:10px 12px; overflow-x:auto}
+.goal + .goal{margin-top:10px; padding-top:10px; border-top:1px dashed var(--line)}
+.goal .case{color:var(--faint); font-size:12px; margin-bottom:2px}
+.goal .hyp, .goal .tgt{white-space:pre; padding:0 4px; border-radius:3px}
+.goal .hyp .nm{color:var(--tk-ty); font-weight:500}
+.goal .tgt{color:var(--ink); font-weight:600; margin-top:3px}
+.goal .tgt .turn{color:var(--accent)}
+.goal .new{background:var(--holds-soft); box-shadow:inset 3px 0 0 var(--holds)}
+.goals.done{color:var(--holds); font-family:"IBM Plex Sans",sans-serif; font-weight:600; font-size:14.5px; background:var(--holds-soft); border-color:color-mix(in srgb, var(--holds) 35%, transparent)}
+.comment{font-size:15px; border-left:3px solid var(--hl-gutter); padding:2px 0 2px 12px}
+.comment .tac{font-family:"IBM Plex Mono",monospace; font-size:13px; color:var(--muted); display:block; margin-bottom:4px; white-space:pre-wrap; word-break:break-word}
+.newmark{background:var(--holds-soft); box-shadow:inset 3px 0 0 var(--holds); padding:0 6px 0 8px; border-radius:3px}
+.meta{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px; font-size:13px; color:var(--muted)}
+.chip{display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:12px; padding:1px 8px; border-radius:999px; border:1px solid var(--line); background:var(--surface-2); color:var(--body); white-space:nowrap}
+.chip.none{border-color:color-mix(in srgb, var(--holds) 40%, transparent); color:var(--holds); background:var(--holds-soft)}
+.chip.bad{border-color:color-mix(in srgb, var(--flaw) 40%, transparent); color:var(--flaw); background:var(--flaw-soft)}
+details.term{margin-top:12px}
+details.term summary{cursor:pointer; font-size:14px; color:var(--accent)}
+details.term .code{margin-top:8px}
+.btnlink{display:inline-flex; align-items:center; gap:6px; font-size:13.5px; border:1px solid var(--line); border-radius:6px; padding:4px 10px; text-decoration:none; background:var(--surface)}
+.btnlink:hover{border-color:var(--accent)}
+
+/* anatomy */
+.anat{display:grid; gap:16px; grid-template-columns:1fr}
+@media (min-width:980px){ .anat{grid-template-columns:minmax(0,7fr) minmax(0,5fr)} }
+.part{border-radius:3px; cursor:pointer; box-shadow:inset 0 -2px 0 color-mix(in srgb, var(--accent) 45%, transparent)}
+.part:hover, .part.on{background:var(--accent-soft); box-shadow:inset 0 -2px 0 var(--accent)}
+.partlist{display:flex; flex-wrap:wrap; gap:6px; margin-top:12px}
+.partlist button{border:1px solid var(--line); background:var(--surface); color:var(--body); border-radius:999px; padding:4px 11px; font:inherit; font-size:13px; cursor:pointer}
+.partlist button.on{border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
+.explain{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px 18px}
+.explain .k{font-size:11.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); font-weight:600}
+.explain b{display:block; font-family:Spectral,Georgia,serif; font-size:20px; color:var(--ink); margin:2px 0 6px}
+.explain .snippet{font-family:"IBM Plex Mono",monospace; font-size:13px; background:var(--code-bg); border:1px solid var(--line-soft); padding:6px 10px; border-radius:6px; margin-bottom:10px; white-space:pre-wrap; word-break:break-word}
+@media (min-width:980px){ .explain{position:sticky; top:70px} }
+
+/* certificate */
+.certenv{display:grid; grid-template-columns:max-content 1fr; gap:6px 16px; font-size:14px; margin:0}
+.certenv dt{color:var(--faint)}
+.certenv dd{margin:0; font-family:"IBM Plex Mono",monospace; font-size:13px; word-break:break-all; color:var(--ink)}
+table.cert{border-collapse:collapse; width:100%; font-size:13.5px; min-width:640px}
+table.cert th, table.cert td{text-align:left; padding:8px 12px; border-bottom:1px solid var(--line-soft); vertical-align:top}
+table.cert th{font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); font-weight:600; background:var(--surface-2)}
+table.cert td.mono{font-family:"IBM Plex Mono",monospace; font-size:12.5px}
+table.cert tr.badrow td{background:color-mix(in srgb, var(--flaw-soft) 60%, transparent)}
+.ok{color:var(--holds); font-weight:600}
+.no{color:var(--flaw); font-weight:600}
+pre.cmd{background:var(--code-bg); border:1px solid var(--line); border-radius:8px; padding:12px 14px; overflow-x:auto; font-size:13px; line-height:1.55; margin:10px 0 0}
+ul.tight{margin:0 0 14px; padding-left:20px}
+ul.tight li{margin-bottom:6px}
+
+footer{padding-block:34px 60px; font-size:13.5px; color:var(--faint)}
+footer p{margin-bottom:6px}
+</style>
+</head>
+<body>
+<nav class="topnav" aria-label="Sections">
+  <div class="wrap">
+    <a class="brand" href="#top">Proofs a Computer Checks</a>
+    <div class="navlinks" id="navlinks">
+      <a href="#formalization">Formalization</a>
+      <a href="#lean">Lean</a>
+      <a href="#mathlib">Mathlib</a>
+      <a href="#anatomy">Anatomy</a>
+      <a href="#examples">Examples</a>
+      <a href="#failure">When it fails</a>
+      <a href="#certificate">Certificate</a>
+      <a href="#tryit">Try it</a>
+    </div>
+    <button class="themebtn" id="themebtn" type="button" aria-label="Toggle colour theme" title="Toggle colour theme">◐</button>
+  </div>
+</nav>
+
+<div class="wrap">
+<header class="mast" id="top">
+  <div class="eyebrow">Lean 4 · Mathlib · for students of mathematics</div>
+  <h1>What a proof looks like when a computer checks it</h1>
+  <p class="standfirst">You already know what a proof is. A <em>formal</em> proof is one written
+    so precisely that a program can check every step, down to the axioms. This page explains how
+    that works in <em>Lean</em>, using a handful of short proofs. You can step through each one,
+    and every line of Lean shown was checked by Lean itself.</p>
+  <div class="teaser">
+    <div class="tcard">
+      <div class="lbl">On paper</div>
+      <div class="paper" id="teaser-paper"></div>
+    </div>
+    <div class="tcard">
+      <div class="lbl">In Lean</div>
+      <div id="teaser-code"></div>
+    </div>
+  </div>
+</header>
+
+<!-- ============================================================ -->
+<section class="sec" id="formalization">
+  <div class="sechead"><span class="secnum">01</span><h2>What is proof formalization?</h2></div>
+  <div class="prose">
+    <p class="lead">Formalization means writing definitions, statements and proofs in a language with
+      fixed rules, so that checking a proof becomes a mechanical task a computer can do.</p>
+    <p>A proof on paper is written for a reader. It skips routine steps (“clearly”, “by symmetry”,
+      “similarly”) and relies on shared conventions. That is a feature, not a flaw, but it means a
+      paper proof is checked only as carefully as its readers check it.</p>
+    <p>A formal proof leaves nothing implicit. Every object has a precise definition, every
+      statement has an exact form, and every step is justified by a rule of logic, an axiom, or an
+      earlier theorem. A small program called a <em>proof checker</em> then confirms that each step
+      follows. If the checker accepts, the theorem follows from the axioms, with no gaps.</p>
+    <p>Writing every step by hand would be unbearable. Proof assistants such as Lean therefore let you
+      write high-level steps (“rewrite with this equation”, “induct on <i>n</i>”, “this is linear
+      arithmetic”) and fill in the low-level details automatically. The result is still checked to
+      the last detail.</p>
+  </div>
+  <div class="callout">
+    <p><b>Why bother?</b> For certainty about long or delicate arguments; for a library of
+      mathematics that can be searched and reused; for collaboration in which nobody has to
+      re-check anybody else's lemmas; and because it shows you exactly what your proof uses.</p>
+  </div>
+  <h3 style="margin-top:30px">Some landmarks</h3>
+  <div class="grid3" style="margin-top:12px">
+    <div class="card small"><span class="yr">2005 · Coq</span><h3>Four Colour Theorem</h3>
+      <p>Gonthier and Werner formalized the 1976 computer-assisted proof, including the
+      case analysis that no human had checked by hand.</p></div>
+    <div class="card small"><span class="yr">2014 · HOL Light, Isabelle</span><h3>Kepler conjecture</h3>
+      <p>The Flyspeck project, led by Hales, completed a formal proof after referees of the
+      original proof could not certify it in full.</p></div>
+    <div class="card small"><span class="yr">2022 · Lean</span><h3>Liquid Tensor Experiment</h3>
+      <p>Scholze challenged the community to check a key theorem of condensed mathematics.
+      It was done in Lean, and the formalization helped clarify the proof.</p></div>
+    <div class="card small"><span class="yr">2024– · Lean</span><h3>Fermat's Last Theorem</h3>
+      <p>A large ongoing project led by Kevin Buzzard to formalize a modern proof of FLT, building
+      on Mathlib.</p></div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="sec" id="lean">
+  <div class="sechead"><span class="secnum">02</span><h2>What is Lean?</h2></div>
+  <div class="prose">
+    <p class="lead">Lean is a programming language and an <em>interactive theorem prover</em>.
+      You state a theorem and write a proof, and Lean either accepts it or tells you exactly what
+      is still missing.</p>
+    <p>Leonardo de Moura started Lean at Microsoft Research in 2013. The current version, Lean 4,
+      is developed by the Lean FRO, a non-profit founded in 2023. Its logic is a <em>dependent
+      type theory</em> (a variant of the calculus of inductive constructions). In practice this
+      means three things: mathematical objects have types, propositions are types too, and a proof
+      of a proposition is an object of that type.</p>
+    <p>“Interactive” is the important word. While you write a proof, Lean shows the <em>goal</em>:
+      what you know (the hypotheses) and what you still have to show, written after the turnstile
+      <code>⊢</code>. Each line of a tactic proof changes the goal, until nothing is left. The
+      examples below let you watch this happen, one line at a time.</p>
+  </div>
+
+  <h3 style="margin-top:28px">How Lean checks a proof</h3>
+  <div class="pipe" role="img" aria-label="Your source goes to the elaborator, which produces a proof term, which the kernel checks; only the kernel must be trusted.">
+    <div class="pbox"><span class="k">You write</span><b>Statement + proof</b>
+      <p>Usually as tactics: <code>intro</code>, <code>rw</code>, <code>apply</code>, <code>induction</code>…</p></div>
+    <div class="parrow" aria-hidden="true">→</div>
+    <div class="pbox"><span class="k">Elaborator</span><b>Builds a proof term</b>
+      <p>Runs the tactics, infers implicit arguments, finds structures such as “this is a group”.
+        Large and clever, but not trusted.</p></div>
+    <div class="parrow" aria-hidden="true">→</div>
+    <div class="pbox trusted"><span class="k">Kernel · trusted</span><b>Checks the term</b>
+      <p>A small program that checks one thing: that the term really has the type of the
+        statement.</p></div>
+    <div class="parrow" aria-hidden="true">→</div>
+    <div class="pbox"><span class="k">Result</span><b>Theorem added</b>
+      <p>Now it can be cited by later proofs, just like a lemma in a paper.</p></div>
+  </div>
+  <p class="fine" style="max-width:72ch">This split is the reason to trust the result. Tactics and
+    automation can be arbitrarily complicated, and can be wrong, but whatever they produce is
+    re-checked by the kernel. A bug in a tactic can stop it from finding a proof. It cannot make
+    Lean accept a false theorem.</p>
+
+  <h3 style="margin-top:30px">Propositions are types, proofs are terms</h3>
+  <div class="grid2" style="margin-top:12px">
+    <div class="tablewrap">
+      <table class="pat">
+        <thead><tr><th>Mathematics</th><th>Lean</th></tr></thead>
+        <tbody>
+          <tr><td>a proposition <i>P</i></td><td>a type <code>P : Prop</code></td></tr>
+          <tr><td>a proof of <i>P</i></td><td>a term <code>h : P</code></td></tr>
+          <tr><td><i>P ⇒ Q</i></td><td>functions <code>P → Q</code>: turn a proof of <i>P</i> into one of <i>Q</i></td></tr>
+          <tr><td><i>∀ x ∈ X, P(x)</i></td><td>functions taking <code>x</code> to a proof of <code>P x</code></td></tr>
+          <tr><td><i>P ∧ Q</i></td><td>pairs <code>⟨hp, hq⟩</code></td></tr>
+          <tr><td><i>∃ x, P(x)</i></td><td>pairs: a witness and a proof <code>⟨x, hx⟩</code></td></tr>
+          <tr><td><i>P</i> is false</td><td><code>¬P</code>, i.e. <code>P → False</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="prose">
+      <p>Tactics are a convenient way to build these terms. Lean will print the term a tactic proof
+        produced. Here is the one behind the four-line proof that a composition of injective
+        functions is injective (see the examples below):</p>
+      <div id="term-demo"></div>
+      <p style="margin-top:12px">Read it as “given <code>h : g (f x) = g (f y)</code>, the term
+        <code>hg h</code> proves <code>f x = f y</code>, and then <code>hf (hg h)</code> proves
+        <code>x = y</code>”. A proof that uses a hypothesis is literally a function applied to
+        it.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="sec" id="mathlib">
+  <div class="sechead"><span class="secnum">03</span><h2>What is Mathlib?</h2></div>
+  <div class="prose">
+    <p class="lead">Mathlib is Lean's community library of formalized mathematics: algebra,
+      analysis, topology, number theory, combinatorics, category theory and more, all checked by
+      Lean and all usable in your own proofs.</p>
+    <p>It began in 2017 for Lean 3 and was ported to Lean 4 in 2023. Hundreds of mathematicians and
+      computer scientists contribute, and every change is reviewed and must compile together with
+      everything else. This is why a formal proof of Euclid's theorem can be eleven lines: facts
+      such as “<i>m</i> ≤ <i>n</i> implies <i>m</i> ∣ <i>n</i>!” are already there.</p>
+  </div>
+  <div class="stats" id="stats"></div>
+  <p class="fine" id="stats-note"></p>
+
+  <h3 style="margin-top:28px">Names that say what they state</h3>
+  <div class="prose">
+    <p>Mathlib lemmas are named after their statements: <code>mul_one</code> is <i>a·1 = a</i>,
+      <code>inv_mul_cancel</code> is <i>a⁻¹a = 1</i>. Once you know the convention you can often
+      guess a name, and tools such as <code>exact?</code> search the library for you. These are
+      the Mathlib facts used on this page, printed by Lean's <code>#check</code>:</p>
+  </div>
+  <div id="lemmas"></div>
+  <p class="fine" style="margin-top:10px; max-width:72ch">Note how general they are.
+    <code>mul_one</code> is stated for any <code>MulOneClass</code>, so it applies to groups,
+    rings, ℕ, matrices and anything else that has a multiplication with a 1. That is why the
+    group proofs below can use it unchanged.</p>
+</section>
+
+<!-- ============================================================ -->
+<section class="sec" id="anatomy">
+  <div class="sechead"><span class="secnum">04</span><h2>Anatomy of a Lean proof</h2></div>
+  <p class="prose">Hover over or tap the underlined parts to see how each piece of the statement
+    corresponds to a phrase in ordinary mathematical writing.</p>
+  <div class="anat" style="margin-top:16px">
+    <div>
+      <div id="anat-code"></div>
+      <div class="partlist" id="anat-list"></div>
+    </div>
+    <div class="explain" id="anat-explain" aria-live="polite"></div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="sec" id="examples">
+  <div class="sechead"><span class="secnum">05</span><h2>Step through the proofs</h2></div>
+  <p class="prose">Choose an example. Under each statement and paper proof is the Lean proof
+    with its <em>goal panel</em>, the view Lean shows while you work. Step with the buttons, the
+    ← → keys, or by clicking a tactic line (marked •). Hypotheses and goals that are new or
+    changed after a step are <span class="newmark">highlighted like this</span>.</p>
+  <div class="tabs" role="tablist" id="tabs" style="margin-top:18px"></div>
+  <div id="example"></div>
+</section>
+
+<!-- ============================================================ -->
+<section class="sec" id="failure">
+  <div class="sechead"><span class="secnum">06</span><h2>When Lean says no</h2></div>
+  <div class="prose">
+    <p>A checker earns trust by rejecting things. This file contains a false “theorem” and a true
+      one with a hole in its proof. Here is what Lean reports, verbatim.</p>
+  </div>
+  <div id="broken" style="margin-top:14px"></div>
+  <div class="grid2" style="margin-top:20px">
+    <div class="card"><h3>An error</h3>
+      <p><code>n + 1 = n</code> is false, so no proof exists. <code>omega</code> searches, fails,
+        and reports a counterexample to the constraints it was given. The file does not compile.</p>
+      <p>Lean then carries on checking the rest of the file. To do that it fills the failed
+        proof with a placeholder, which is why <code>false_claim</code> is also listed as depending
+        on <code>sorryAx</code>. A failed proof can never pass for a real one.</p></div>
+    <div class="card"><h3><code>sorry</code>: an IOU</h3>
+      <p><code>sorry</code> closes any goal without proof. It is useful while you work, but Lean
+        warns about it, and the theorem is then recorded as depending on the axiom
+        <code>sorryAx</code>. The next section shows how that dependence is detected.</p></div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="sec" id="certificate">
+  <div class="sechead"><span class="secnum">07</span><h2>What a certificate means</h2></div>
+  <div class="prose">
+    <p class="lead">“Lean accepted it” is a precise claim. A certificate records exactly what
+      was checked, by what, and with which axioms, so that anyone can repeat the check.</p>
+    <p>For this page the certificate has three parts:</p>
+    <ul class="tight">
+      <li><b>What:</b> the exact source files, identified by their SHA-256 hashes. Change one
+        character and the hash changes.</li>
+      <li><b>By what:</b> the exact Lean version and the exact Mathlib commit.</li>
+      <li><b>Assuming what:</b> for each theorem, the axioms its proof ultimately depends on, as
+        reported by Lean's <code>#print axioms</code>. This walks through every lemma the proof
+        uses, all the way down through Mathlib.</li>
+    </ul>
+  </div>
+
+  <div class="grid2" style="margin-top:22px">
+    <div class="card">
+      <h3>The axioms you will see</h3>
+      <ul class="tight" style="font-size:15px">
+        <li><code>propext</code>: logically equivalent propositions are equal. Tactics such as
+          <code>rw</code> often produce proofs that use it.</li>
+        <li><code>Quot.sound</code>: equivalent elements of a quotient are equal. Function
+          extensionality follows from it.</li>
+        <li><code>Classical.choice</code>: the axiom of choice. It also gives the law of the
+          excluded middle, and so proof by contradiction.</li>
+        <li><span class="chip none">no axioms</span> The proof is purely constructive. It uses only
+          the rules of the type theory itself.</li>
+        <li><span class="chip bad">sorryAx</span> <b>Not a proof.</b> Somewhere there is a gap, or an
+          error that Lean recovered from.</li>
+      </ul>
+      <p style="font-size:14.5px; color:var(--muted)">The first three are Lean's standard axioms,
+        and almost all of Mathlib uses them. They correspond to ordinary mathematics with the
+        axiom of choice.</p>
+    </div>
+    <div class="card">
+      <h3>What it does not certify</h3>
+      <p style="font-size:15px">Lean checks that the proof proves <em>the statement as written</em>.
+        Whether that statement means what you intend is a human judgement. Suppose, in the
+        identity theorem, we had written only <code>e * a = a</code> (a left identity) for
+        <i>e</i> and only <code>a * e' = a</code> (a right identity) for <i>e′</i>. That theorem
+        is still true, but it is a different theorem. Reading the statement carefully is the one
+        step a checker cannot do for you.</p>
+      <p style="font-size:15px">You also trust the kernel and the machine that ran it. The kernel is
+        small and well studied, and independent re-checkers such as <code>lean4checker</code> can
+        replay the proofs through it again.</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:30px">The certificate for this page</h3>
+  <dl class="certenv" id="certenv" style="margin-top:12px"></dl>
+  <div class="tablewrap" style="margin-top:16px"><table class="cert" id="certtable"></table></div>
+  <p class="fine" style="margin-top:10px">The same record as plain text: <a href="certificate.txt">certificate.txt</a>.</p>
+
+  <h3 style="margin-top:30px">Check it yourself</h3>
+  <div class="prose">
+    <p>Install Lean through <a href="https://lean-lang.org/install/" rel="noopener">elan</a>, then
+      in the repository's <code>lean/</code> folder:</p>
+  </div>
+  <pre class="cmd" id="repro"></pre>
+</section>
+
+<!-- ============================================================ -->
+<section class="sec" id="tryit">
+  <div class="sechead"><span class="secnum">08</span><h2>Try it</h2></div>
+  <div class="prose">
+    <p>The quickest start needs no installation. <a href="https://live.lean-lang.org/" rel="noopener">Lean 4 Web</a>
+      runs Lean with Mathlib in your browser. Each example above has an “Open in Lean 4 Web”
+      button. Put your cursor at the end of a tactic line and the goal panel on the right shows
+      the same states as here. Then try breaking the proof: delete a line, or change
+      <code>e * e'</code> to <code>e' * e</code>, and watch the error appear.</p>
+    <p>The online editor tracks a recent Mathlib, not the exact commit certified here, so now and
+      then a lemma may have been renamed in the meantime.</p>
+    <p>For more, see <a href="https://adam.math.hhu.de/" rel="noopener">the Lean Game Server</a>
+      (start with the Natural Number Game), <a href="https://leanprover-community.github.io/mathematics_in_lean/" rel="noopener"><i>Mathematics in Lean</i></a>,
+      and <a href="https://leanprover-community.github.io/mathlib4_docs/" rel="noopener">the Mathlib documentation</a>.</p>
+  </div>
+</section>
+
+<footer>
+  <p>Every Lean source, goal state, error message, axiom list and proof term on this page was
+    produced by Lean and inserted by a script; none of it was typed by hand.
+    <span id="stamp"></span></p>
+</footer>
+</div>
+
+<script>
+const DATA = {"env": {"checked_at": "2026-10-01T18:11:55-04:00", "host": "C3P0", "lean_version": "Lean (version 4.34.0, x86_64-unknown-linux-gnu, commit 293d5d0c0c3f3dded4688b3ccd6a33939ac5102b, Release)", "toolchain": "leanprover/lean4:v4.34.0", "mathlib": {"commit": "db00fb3901b1bb4954f8a2373285959a5930bbfa", "commit_date": "2026-09-15T06:31:53Z", "files": 8530, "lines": 2327785, "theorems": 189375, "defs": 36404}}, "check_dir": "results/check-20261001-181155", "examples": [{"id": "identity", "tab": "Identity is unique", "title": "The identity element is unique", "file": "IdentityUnique.lean", "statement": "Let <i>M<\/i> be a set with a binary operation ·. If <i>e<\/i> and <i>e′<\/i> are both two-sided identities, so that <i>e·a = a = a·e<\/i> and <i>e′·a = a = a·e′<\/i> for every <i>a<\/i>, then <i>e = e′<\/i>.", "paper": "Because <i>e′<\/i> is an identity, <i>e·e′ = e<\/i>. Because <i>e<\/i> is an identity, <i>e·e′ = e′<\/i>. Therefore <i>e = e·e′ = e′<\/i>. ∎", "decls": [{"name": "identity_unique", "intro": "Nothing about groups is used: only a multiplication <code>[Mul M]<\/code>. The proof follows the paper proof line for line.", "doc_line": 5, "line": 8, "end": 15, "source": "/-- If `e` and `e'` are both two-sided identities for a multiplication,\nthen `e = e'`. Only a multiplication `*` is assumed: no associativity,\nno inverses. -/\ntheorem identity_unique {M : Type*} [Mul M] (e e' : M)\n    (he : ∀ a : M, e * a = a ∧ a * e = a)\n    (he' : ∀ a : M, e' * a = a ∧ a * e' = a) :\n    e = e' := by\n  have h1 : e * e' = e' := (he e').1\n  have h2 : e * e' = e := (he' e).2\n  rw [← h2]\n  exact h1", "steps": [{"line": 12, "before": "M : Type u_1\ninst✝ : Mul M\ne e' : M\nhe : ∀ (a : M), e * a = a ∧ a * e = a\nhe' : ∀ (a : M), e' * a = a ∧ a * e' = a\n⊢ e = e'", "after": "M : Type u_1\ninst✝ : Mul M\ne e' : M\nhe : ∀ (a : M), e * a = a ∧ a * e = a\nhe' : ∀ (a : M), e' * a = a ∧ a * e' = a\nh1 : e * e' = e'\n⊢ e = e'", "comment": "Record a fact and name it <code>h1<\/code>. <code>he e'<\/code> plugs <i>a = e′<\/i> into the hypothesis about <i>e<\/i>, which gives <code>e * e' = e' ∧ e' * e = e'<\/code>. Then <code>.1<\/code> takes the left half of the ∧."}, {"line": 13, "before": "M : Type u_1\ninst✝ : Mul M\ne e' : M\nhe : ∀ (a : M), e * a = a ∧ a * e = a\nhe' : ∀ (a : M), e' * a = a ∧ a * e' = a\nh1 : e * e' = e'\n⊢ e = e'", "after": "M : Type u_1\ninst✝ : Mul M\ne e' : M\nhe : ∀ (a : M), e * a = a ∧ a * e = a\nhe' : ∀ (a : M), e' * a = a ∧ a * e' = a\nh1 : e * e' = e'\nh2 : e * e' = e\n⊢ e = e'", "comment": "The same move for <i>e′<\/i>, applied to <i>a = e<\/i>, taking the right half."}, {"line": 14, "before": "M : Type u_1\ninst✝ : Mul M\ne e' : M\nhe : ∀ (a : M), e * a = a ∧ a * e = a\nhe' : ∀ (a : M), e' * a = a ∧ a * e' = a\nh1 : e * e' = e'\nh2 : e * e' = e\n⊢ e = e'", "after": "M : Type u_1\ninst✝ : Mul M\ne e' : M\nhe : ∀ (a : M), e * a = a ∧ a * e = a\nhe' : ∀ (a : M), e' * a = a ∧ a * e' = a\nh1 : e * e' = e'\nh2 : e * e' = e\n⊢ e * e' = e'", "comment": "<code>rw<\/code> rewrites with an equation. The <code>←<\/code> uses <code>h2<\/code> from right to left: every <code>e<\/code> in the goal becomes <code>e * e'<\/code>. So the goal <code>e = e'<\/code> turns into <code>e * e' = e'<\/code>."}, {"line": 15, "before": "M : Type u_1\ninst✝ : Mul M\ne e' : M\nhe : ∀ (a : M), e * a = a ∧ a * e = a\nhe' : ∀ (a : M), e' * a = a ∧ a * e' = a\nh1 : e * e' = e'\nh2 : e * e' = e\n⊢ e * e' = e'", "after": "", "comment": "The goal is now literally <code>h1<\/code>. <code>exact<\/code> closes it. No goals remain, so the proof is complete."}], "axioms": [], "term": "theorem LeanProofs.identity_unique.{u_1} : ∀ {M : Type u_1} [inst : Mul M] (e e' : M),\n  (∀ (a : M), e * a = a ∧ a * e = a) → (∀ (a : M), e' * a = a ∧ a * e' = a) → e = e' :=\nfun {M} [Mul M] e e' he he' =>\n  have h1 := (he e').left;\n  have h2 := (he' e).right;\n  Eq.mpr (id (congrArg (fun _a => _a = e') (Eq.symm h2))) h1"}, {"name": "eq_one_of_mul_left", "intro": "In a group you can say more. If <i>e·a = a<\/i> for even one <i>a<\/i>, then <i>e = 1<\/i>. On paper: <i>e = e(aa⁻¹) = (ea)a⁻¹ = aa⁻¹ = 1<\/i>. Here the steps are done by rewriting a hypothesis rather than the goal.", "doc_line": 17, "line": 19, "end": 26, "source": "/-- In a group, an element that acts as a left identity on even one\nelement must be the identity `1` of the group. -/\ntheorem eq_one_of_mul_left {G : Type*} [Group G] (e a : G)\n    (h : e * a = a) :\n    e = 1 := by\n  have h2 : e * a * a⁻¹ = a * a⁻¹ := by rw [h]\n  rw [mul_assoc] at h2\n  rw [mul_inv_cancel] at h2\n  rw [mul_one] at h2\n  exact h2", "steps": [{"line": 22, "before": "G : Type u_1\ninst✝ : Group G\ne a : G\nh : e * a = a\n⊢ e = 1", "after": "G : Type u_1\ninst✝ : Group G\ne a : G\nh : e * a = a\nh2 : e * a * a⁻¹ = a * a⁻¹\n⊢ e = 1", "comment": "Multiply both sides of <code>h<\/code> on the right by <i>a⁻¹<\/i>. The small inner proof <code>by rw [h]<\/code> turns <code>e * a<\/code> into <code>a<\/code>, after which both sides agree."}, {"line": 23, "before": "G : Type u_1\ninst✝ : Group G\ne a : G\nh : e * a = a\nh2 : e * a * a⁻¹ = a * a⁻¹\n⊢ e = 1", "after": "G : Type u_1\ninst✝ : Group G\ne a : G\nh : e * a = a\nh2 : e * (a * a⁻¹) = a * a⁻¹\n⊢ e = 1", "comment": "<code>at h2<\/code> rewrites the hypothesis instead of the goal. Associativity turns <code>(e * a) * a⁻¹<\/code> into <code>e * (a * a⁻¹)<\/code>. Lean prints <code>e * a * a⁻¹<\/code> for <code>(e * a) * a⁻¹<\/code>, because <code>*<\/code> associates to the left."}, {"line": 24, "before": "G : Type u_1\ninst✝ : Group G\ne a : G\nh : e * a = a\nh2 : e * (a * a⁻¹) = a * a⁻¹\n⊢ e = 1", "after": "G : Type u_1\ninst✝ : Group G\ne a : G\nh : e * a = a\nh2 : e * 1 = 1\n⊢ e = 1", "comment": "<code>a * a⁻¹ = 1<\/code>. Both occurrences are rewritten at once."}, {"line": 25, "before": "G : Type u_1\ninst✝ : Group G\ne a : G\nh : e * a = a\nh2 : e * 1 = 1\n⊢ e = 1", "after": "G : Type u_1\ninst✝ : Group G\ne a : G\nh : e * a = a\nh2 : e = 1\n⊢ e = 1", "comment": "<code>e * 1 = e<\/code>. Now <code>h2<\/code> says exactly <code>e = 1<\/code>."}, {"line": 26, "before": "G : Type u_1\ninst✝ : Group G\ne a : G\nh : e * a = a\nh2 : e = 1\n⊢ e = 1", "after": "", "comment": "…which is the goal."}], "axioms": ["propext"], "term": "theorem LeanProofs.eq_one_of_mul_left.{u_1} : ∀ {G : Type u_1} [inst : Group G] (e a : G), e * a = a → e = 1 :=\nfun {G} [Group G] e a h =>\n  have h2 := Eq.mpr (id (congrArg (fun _a => _a * a⁻¹ = a * a⁻¹) h)) (Eq.refl (a * a⁻¹));\n  Eq.mp (congrArg (fun _a => _a = 1) (mul_one e))\n    (Eq.mp (congrArg (fun _a => e * _a = _a) (mul_inv_cancel a))\n      (Eq.mp (congrArg (fun _a => _a = a * a⁻¹) (mul_assoc e a a⁻¹)) h2))"}], "sha256": "aef273808094523582efe1e38e2acf34d70cb8bd65f2e0753a458ebb1438fbc5", "path": "lean/LeanProofs/IdentityUnique.lean", "file_source": "import Mathlib\n\nnamespace LeanProofs\n\n/-- If `e` and `e'` are both two-sided identities for a multiplication,\nthen `e = e'`. Only a multiplication `*` is assumed: no associativity,\nno inverses. -/\ntheorem identity_unique {M : Type*} [Mul M] (e e' : M)\n    (he : ∀ a : M, e * a = a ∧ a * e = a)\n    (he' : ∀ a : M, e' * a = a ∧ a * e' = a) :\n    e = e' := by\n  have h1 : e * e' = e' := (he e').1\n  have h2 : e * e' = e := (he' e).2\n  rw [← h2]\n  exact h1\n\n/-- In a group, an element that acts as a left identity on even one\nelement must be the identity `1` of the group. -/\ntheorem eq_one_of_mul_left {G : Type*} [Group G] (e a : G)\n    (h : e * a = a) :\n    e = 1 := by\n  have h2 : e * a * a⁻¹ = a * a⁻¹ := by rw [h]\n  rw [mul_assoc] at h2\n  rw [mul_inv_cancel] at h2\n  rw [mul_one] at h2\n  exact h2\n\nend LeanProofs"}, {"id": "inverse", "tab": "Inverses are unique", "title": "Inverses are unique", "file": "InverseUnique.lean", "statement": "In a group <i>G<\/i>, if <i>a·b = 1<\/i> then <i>b = a⁻¹<\/i>. So an element has exactly one (right) inverse.", "paper": "<i>b = 1·b = (a⁻¹a)·b = a⁻¹(a·b) = a⁻¹·1 = a⁻¹<\/i>. ∎", "decls": [{"name": "inv_unique_calc", "intro": "A <code>calc<\/code> block is a chain of equalities, each with its own justification, written the way you would write it on paper.", "doc_line": 7, "line": 9, "end": 14, "source": "/-- Inverses in a group are unique: if `a * b = 1` then `b = a⁻¹`.\nWritten as a `calc` chain, the way it is written on paper. -/\ntheorem inv_unique_calc (a b : G) (h : a * b = 1) : b = a⁻¹ := by\n  calc b = 1 * b := by rw [one_mul]\n    _ = (a⁻¹ * a) * b := by rw [inv_mul_cancel]\n    _ = a⁻¹ * (a * b) := by rw [mul_assoc]\n    _ = a⁻¹ * 1 := by rw [h]\n    _ = a⁻¹ := by rw [mul_one]", "steps": [{"line": 10, "before": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\n⊢ b = a⁻¹", "after": "", "comment": "Each line is <code>_ = next := reason<\/code>, and <code>_<\/code> stands for the previous right-hand side. Lean checks every link, and checks that the chain starts at <code>b<\/code> and ends at <code>a⁻¹<\/code>. Each reason is a one-step rewrite with a group axiom from Mathlib, or with <code>h<\/code>."}], "axioms": ["propext"], "term": "theorem LeanProofs.inv_unique_calc.{u_1} : ∀ {G : Type u_1} [inst : Group G] (a b : G), a * b = 1 → b = a⁻¹ :=\nfun {G} [Group G] a b h =>\n  Trans.trans\n    (Trans.trans\n      (Trans.trans\n        (Trans.trans (Eq.mpr (id (congrArg (fun _a => b = _a) (one_mul b))) (Eq.refl b))\n          (Eq.mpr (id (congrArg (fun _a => 1 * b = _a * b) (inv_mul_cancel a))) (Eq.refl (1 * b))))\n        (Eq.mpr (id (congrArg (fun _a => _a = a⁻¹ * (a * b)) (mul_assoc a⁻¹ a b))) (Eq.refl (a⁻¹ * (a * b)))))\n      (Eq.mpr (id (congrArg (fun _a => a⁻¹ * _a = a⁻¹ * 1) h)) (Eq.refl (a⁻¹ * 1))))\n    (Eq.mpr (id (congrArg (fun _a => _a = a⁻¹) (mul_one a⁻¹))) (Eq.refl a⁻¹))"}, {"name": "inv_unique", "intro": "The same theorem, proved by transforming a hypothesis until it becomes the goal. Watch <code>h2<\/code> change in the goal panel.", "doc_line": 16, "line": 17, "end": 23, "source": "/-- The same theorem, proved by rewriting the hypothesis step by step. -/\ntheorem inv_unique (a b : G) (h : a * b = 1) : b = a⁻¹ := by\n  have h2 : a⁻¹ * (a * b) = a⁻¹ * 1 := by rw [h]\n  rw [← mul_assoc] at h2\n  rw [inv_mul_cancel] at h2\n  rw [one_mul] at h2\n  rw [mul_one] at h2\n  exact h2", "steps": [{"line": 18, "before": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\n⊢ b = a⁻¹", "after": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\nh2 : a⁻¹ * (a * b) = a⁻¹ * 1\n⊢ b = a⁻¹", "comment": "Multiply <code>h<\/code> on the left by <i>a⁻¹<\/i>."}, {"line": 19, "before": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\nh2 : a⁻¹ * (a * b) = a⁻¹ * 1\n⊢ b = a⁻¹", "after": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\nh2 : a⁻¹ * a * b = a⁻¹ * 1\n⊢ b = a⁻¹", "comment": "Re-associate: <code>a⁻¹ * (a * b)<\/code> becomes <code>(a⁻¹ * a) * b<\/code>. Mathlib's <code>mul_assoc<\/code> reads <code>a * b * c = a * (b * c)<\/code>, and <code>←<\/code> uses it from right to left."}, {"line": 20, "before": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\nh2 : a⁻¹ * a * b = a⁻¹ * 1\n⊢ b = a⁻¹", "after": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\nh2 : 1 * b = a⁻¹ * 1\n⊢ b = a⁻¹", "comment": "<code>a⁻¹ * a = 1<\/code>."}, {"line": 21, "before": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\nh2 : 1 * b = a⁻¹ * 1\n⊢ b = a⁻¹", "after": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\nh2 : b = a⁻¹ * 1\n⊢ b = a⁻¹", "comment": "<code>1 * b = b<\/code>."}, {"line": 22, "before": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\nh2 : b = a⁻¹ * 1\n⊢ b = a⁻¹", "after": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\nh2 : b = a⁻¹\n⊢ b = a⁻¹", "comment": "<code>a⁻¹ * 1 = a⁻¹<\/code>. Now <code>h2 : b = a⁻¹<\/code>."}, {"line": 23, "before": "G : Type u_1\ninst✝ : Group G\na b : G\nh : a * b = 1\nh2 : b = a⁻¹\n⊢ b = a⁻¹", "after": "", "comment": "Done."}], "axioms": ["propext"], "term": "theorem LeanProofs.inv_unique.{u_1} : ∀ {G : Type u_1} [inst : Group G] (a b : G), a * b = 1 → b = a⁻¹ :=\nfun {G} [Group G] a b h =>\n  have h2 := Eq.mpr (id (congrArg (fun _a => a⁻¹ * _a = a⁻¹ * 1) h)) (Eq.refl (a⁻¹ * 1));\n  Eq.mp (congrArg (fun _a => b = _a) (mul_one a⁻¹))\n    (Eq.mp (congrArg (fun _a => _a = a⁻¹ * 1) (one_mul b))\n      (Eq.mp (congrArg (fun _a => _a * b = a⁻¹ * 1) (inv_mul_cancel a))\n        (Eq.mp (congrArg (fun _a => _a = a⁻¹ * 1) (Eq.symm (mul_assoc a⁻¹ a b))) h2)))"}], "sha256": "14429307c61372612fd7c437f5dbc67bab6f62a8cec16033742019f82c24a18e", "path": "lean/LeanProofs/InverseUnique.lean", "file_source": "import Mathlib\n\nnamespace LeanProofs\n\nvariable {G : Type*} [Group G]\n\n/-- Inverses in a group are unique: if `a * b = 1` then `b = a⁻¹`.\nWritten as a `calc` chain, the way it is written on paper. -/\ntheorem inv_unique_calc (a b : G) (h : a * b = 1) : b = a⁻¹ := by\n  calc b = 1 * b := by rw [one_mul]\n    _ = (a⁻¹ * a) * b := by rw [inv_mul_cancel]\n    _ = a⁻¹ * (a * b) := by rw [mul_assoc]\n    _ = a⁻¹ * 1 := by rw [h]\n    _ = a⁻¹ := by rw [mul_one]\n\n/-- The same theorem, proved by rewriting the hypothesis step by step. -/\ntheorem inv_unique (a b : G) (h : a * b = 1) : b = a⁻¹ := by\n  have h2 : a⁻¹ * (a * b) = a⁻¹ * 1 := by rw [h]\n  rw [← mul_assoc] at h2\n  rw [inv_mul_cancel] at h2\n  rw [one_mul] at h2\n  rw [mul_one] at h2\n  exact h2\n\nend LeanProofs"}, {"id": "addzero", "tab": "n + 0 = n", "title": "n + 0 = n, and 0 + n = n", "file": "AddZero.lean", "statement": "For every natural number <i>n<\/i>: <i>n + 0 = n<\/i> and <i>0 + n = n<\/i>.", "paper": "The natural numbers are built from 0 by the successor <i>S<\/i> (Lean writes <code>n + 1<\/code> or <code>n.succ<\/code>). Addition is <em>defined<\/em> by recursion on the second argument: <i>n + 0 = n<\/i> and <i>n + S(m) = S(n + m)<\/i>. So the first identity is a defining equation. The second needs induction: <i>0 + 0 = 0<\/i> by definition, and if <i>0 + k = k<\/i> then <i>0 + S(k) = S(0 + k) = S(k)<\/i>. ∎", "note": "This file does not import Mathlib. <code>Nat<\/code> and its addition are built into Lean itself.", "decls": [{"name": "add_zero", "intro": "<code>rfl<\/code> is proof by computation. The kernel unfolds the definition of <code>+<\/code>, sees that both sides are the same term, and accepts. There are no tactics, so there is nothing to step through.", "doc_line": 3, "line": 6, "end": 6, "source": "/-- `n + 0 = n` holds *by definition*: Lean defines addition by recursion\non the second argument, with `n + 0 := n`. So `rfl` (\"both sides compute\nto the same thing\") is a complete proof. -/\ntheorem add_zero (n : Nat) : n + 0 = n := rfl", "steps": [], "axioms": [], "term": "@[defeq] theorem LeanProofs.add_zero : ∀ (n : Nat), n + 0 = n :=\nfun n => rfl"}, {"name": "zero_add", "intro": "Swap the order and <code>rfl<\/code> no longer works: <code>0 + n<\/code> does not compute when <code>n<\/code> is a variable. Induction is needed, exactly as on paper.", "doc_line": 8, "line": 10, "end": 16, "source": "/-- `0 + n = n` is *not* true by definition, because the recursion runs on\nthe second argument. It needs induction on `n`. -/\ntheorem zero_add (n : Nat) : 0 + n = n := by\n  induction n with\n  | zero =>\n    rfl\n  | succ k ih =>\n    rw [Nat.add_succ]\n    rw [ih]", "steps": [{"line": 11, "before": "n : Nat\n⊢ 0 + n = n", "after": "case zero\n⊢ 0 + 0 = 0", "comment": "Split into the base case <code>zero<\/code> and the step <code>succ k<\/code>, with induction hypothesis <code>ih : 0 + k = k<\/code>. Each <code>| case =><\/code> branch proves one case. The panel shows the case being worked on."}, {"line": 13, "before": "case zero\n⊢ 0 + 0 = 0", "after": "", "comment": "<code>0 + 0 = 0<\/code> holds by definition."}, {"line": 15, "before": "case succ\nk : Nat\nih : 0 + k = k\n⊢ 0 + (k + 1) = k + 1", "after": "case succ\nk : Nat\nih : 0 + k = k\n⊢ (0 + k).succ = k + 1", "comment": "Unfold one step of the definition: <code>0 + (k + 1)<\/code> becomes <code>(0 + k).succ<\/code>."}, {"line": 16, "before": "case succ\nk : Nat\nih : 0 + k = k\n⊢ (0 + k).succ = k + 1", "after": "", "comment": "Replace <code>0 + k<\/code> by <code>k<\/code> using the induction hypothesis. The goal is then <code>k.succ = k + 1<\/code>. The two sides are equal by definition, and <code>rw<\/code> always tries <code>rfl<\/code> at the end, so the case closes."}], "axioms": [], "term": "theorem LeanProofs.zero_add : ∀ (n : Nat), 0 + n = n :=\nfun n =>\n  Nat.recAux (Eq.refl (0 + 0))\n    (fun k ih =>\n      Eq.mpr (id (congrArg (fun _a => _a = k + 1) (Nat.add_succ 0 k)))\n        (Eq.mpr (id (congrArg (fun _a => _a.succ = k + 1) ih)) (Eq.refl k.succ)))\n    n"}], "sha256": "3041f27dab791f5b38a5131d764ea029fe32ef83d899258c5b190a85f367c1b8", "path": "lean/LeanProofs/AddZero.lean", "file_source": "namespace LeanProofs\n\n/-- `n + 0 = n` holds *by definition*: Lean defines addition by recursion\non the second argument, with `n + 0 := n`. So `rfl` (\"both sides compute\nto the same thing\") is a complete proof. -/\ntheorem add_zero (n : Nat) : n + 0 = n := rfl\n\n/-- `0 + n = n` is *not* true by definition, because the recursion runs on\nthe second argument. It needs induction on `n`. -/\ntheorem zero_add (n : Nat) : 0 + n = n := by\n  induction n with\n  | zero =>\n    rfl\n  | succ k ih =>\n    rw [Nat.add_succ]\n    rw [ih]\n\nend LeanProofs"}, {"id": "euclid", "tab": "Infinitely many primes", "title": "Euclid: there are infinitely many primes", "file": "Euclid.lean", "statement": "For every natural number <i>n<\/i> there is a prime <i>p ≥ n<\/i>. Hence there are infinitely many primes.", "paper": "Let <i>p<\/i> be the smallest prime factor of <i>N = n! + 1<\/i>, which exists because <i>N &gt; 1<\/i>. Suppose <i>p &lt; n<\/i>. Then <i>p<\/i> is one of the factors of <i>n! = 1·2·⋯·n<\/i>, so <i>p<\/i> divides <i>n!<\/i>. It also divides <i>N<\/i>, so it divides <i>N − n! = 1<\/i>, which is impossible for a prime. Hence <i>p ≥ n<\/i>. ∎", "decls": [{"name": "exists_prime_ge", "intro": "Eleven lines, each matching a clause of the paper proof. The facts about factorials and divisibility come from Mathlib, and each lemma's name says what it states.", "doc_line": 5, "line": 11, "end": 22, "source": "/-- Euclid: for every `n` there is a prime `p ≥ n`. So there are\ninfinitely many primes.\n\nThe idea: let `p` be the smallest prime factor of `n! + 1`. If `p < n`,\nthen `p` divides `n!`, and also `n! + 1`, so it divides `1`.\nThat is impossible. -/\ntheorem exists_prime_ge (n : ℕ) : ∃ p, n ≤ p ∧ p.Prime := by\n  have hpos : 0 < n.factorial := Nat.factorial_pos n\n  have hne : n.factorial + 1 ≠ 1 := by omega\n  let p := Nat.minFac (n.factorial + 1)\n  have hp : p.Prime := Nat.minFac_prime hne\n  refine ⟨p, ?_, hp⟩\n  by_contra hlt\n  rw [not_le] at hlt\n  have h1 : p ∣ n.factorial := Nat.dvd_factorial hp.pos hlt.le\n  have h2 : p ∣ n.factorial + 1 := Nat.minFac_dvd (n.factorial + 1)\n  have h3 : p ∣ 1 := (Nat.dvd_add_right h1).mp h2\n  exact hp.one_lt.ne' (Nat.dvd_one.mp h3)", "steps": [{"line": 12, "before": "n : ℕ\n⊢ ∃ p, n ≤ p ∧ Nat.Prime p", "after": "n : ℕ\nhpos : 0 < n.factorial\n⊢ ∃ p, n ≤ p ∧ Nat.Prime p", "comment": "<i>n! &gt; 0<\/i>, a Mathlib lemma."}, {"line": 13, "before": "n : ℕ\nhpos : 0 < n.factorial\n⊢ ∃ p, n ≤ p ∧ Nat.Prime p", "after": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\n⊢ ∃ p, n ≤ p ∧ Nat.Prime p", "comment": "<i>n! + 1 ≠ 1<\/i>. <code>omega<\/code> is a decision procedure for linear arithmetic over ℕ and ℤ. It finds <code>hpos<\/code> in the context on its own."}, {"line": 14, "before": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\n⊢ ∃ p, n ≤ p ∧ Nat.Prime p", "after": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\n⊢ ∃ p, n ≤ p ∧ Nat.Prime p", "comment": "Name the smallest prime factor. <code>Nat.minFac m<\/code> is the least divisor of <code>m<\/code> that is at least 2 (and <code>minFac 1 = 1<\/code>)."}, {"line": 15, "before": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\n⊢ ∃ p, n ≤ p ∧ Nat.Prime p", "after": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\n⊢ ∃ p, n ≤ p ∧ Nat.Prime p", "comment": "Mathlib: <code>minFac m<\/code> is prime whenever <code>m ≠ 1<\/code>."}, {"line": 16, "before": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\n⊢ ∃ p, n ≤ p ∧ Nat.Prime p", "after": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\n⊢ n ≤ p", "comment": "Offer <code>p<\/code> as the witness for ∃. Of the two parts of the ∧, <code>hp<\/code> settles primality, and the placeholder <code>?_<\/code> leaves <code>n ≤ p<\/code> as the remaining goal."}, {"line": 17, "before": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\n⊢ n ≤ p", "after": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\nhlt : ¬n ≤ p\n⊢ False", "comment": "Argue by contradiction: assume <code>hlt : ¬ n ≤ p<\/code> and prove <code>False<\/code>."}, {"line": 18, "before": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\nhlt : ¬n ≤ p\n⊢ False", "after": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\nhlt : p < n\n⊢ False", "comment": "<code>¬ n ≤ p<\/code> is the same as <code>p &lt; n<\/code>."}, {"line": 19, "before": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\nhlt : p < n\n⊢ False", "after": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\nhlt : p < n\nh1 : p ∣ n.factorial\n⊢ False", "comment": "<i>0 &lt; p ≤ n<\/i>, so <i>p<\/i> divides <i>n!<\/i>. Note <code>∣<\/code> is the divisibility bar, typed <code>\\mid<\/code>, not the keyboard <code>|<\/code>."}, {"line": 20, "before": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\nhlt : p < n\nh1 : p ∣ n.factorial\n⊢ False", "after": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\nhlt : p < n\nh1 : p ∣ n.factorial\nh2 : p ∣ n.factorial + 1\n⊢ False", "comment": "<i>p<\/i> divides <i>n! + 1<\/i>, by the definition of <code>minFac<\/code>."}, {"line": 21, "before": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\nhlt : p < n\nh1 : p ∣ n.factorial\nh2 : p ∣ n.factorial + 1\n⊢ False", "after": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\nhlt : p < n\nh1 : p ∣ n.factorial\nh2 : p ∣ n.factorial + 1\nh3 : p ∣ 1\n⊢ False", "comment": "If <i>p ∣ n!<\/i>, then <i>p ∣ n! + 1<\/i> if and only if <i>p ∣ 1<\/i>. <code>.mp<\/code> uses the forward direction of the ↔."}, {"line": 22, "before": "n : ℕ\nhpos : 0 < n.factorial\nhne : n.factorial + 1 ≠ 1\np : ℕ := (n.factorial + 1).minFac\nhp : Nat.Prime p\nhlt : p < n\nh1 : p ∣ n.factorial\nh2 : p ∣ n.factorial + 1\nh3 : p ∣ 1\n⊢ False", "after": "", "comment": "<code>p ∣ 1<\/code> forces <code>p = 1<\/code>, but a prime satisfies <code>1 &lt; p<\/code>. <code>.ne'<\/code> turns <code>1 &lt; p<\/code> into <code>p ≠ 1<\/code>, a function from <code>p = 1<\/code> to <code>False<\/code>."}], "axioms": ["propext", "Classical.choice", "Quot.sound"], "term": "theorem LeanProofs.exists_prime_ge : ∀ (n : ℕ), ∃ p, n ≤ p ∧ Nat.Prime p :=\nfun n =>\n  have hpos := Nat.factorial_pos n;\n  have hne := fun a => LeanProofs.exists_prime_ge._proof_1_1 n hpos a;\n  let p := (n.factorial + 1).minFac;\n  have hp := Nat.minFac_prime hne;\n  Exists.intro p\n    ⟨Decidable.byContradiction fun hlt =>\n        have h1 :=\n          Nat.dvd_factorial (Nat.Prime.pos hp) (LT.lt.le (Eq.mp (congrArg (fun _a => _a) (propext not_le)) hlt));\n        have h2 := Nat.minFac_dvd (n.factorial + 1);\n        have h3 := (Nat.dvd_add_right h1).mp h2;\n        LT.lt.ne' (Nat.Prime.one_lt hp) (Nat.dvd_one.mp h3),\n      hp⟩"}, {"name": "primes_infinite", "intro": "Mathlib already has this theorem, so the proof is one line that points to the library lemma. A large part of formalizing mathematics is finding the result you need, already proved, among Mathlib's roughly 200,000 theorems.", "doc_line": 24, "line": 26, "end": 27, "source": "/-- The same fact, stated as \"the set of primes is infinite\", and proved by\nlooking the result up in Mathlib. -/\ntheorem primes_infinite : {p : ℕ | p.Prime}.Infinite :=\n  Nat.infinite_setOfPred_prime", "steps": [], "axioms": ["propext", "Classical.choice", "Quot.sound"], "term": "theorem LeanProofs.primes_infinite : {p | Nat.Prime p}.Infinite :=\nNat.infinite_setOfPred_prime"}], "sha256": "462656d5247cfe7da6ac8f2e43dd557d3d0bd5bb22c0fe52fc80904b8e999fb6", "path": "lean/LeanProofs/Euclid.lean", "file_source": "import Mathlib\n\nnamespace LeanProofs\n\n/-- Euclid: for every `n` there is a prime `p ≥ n`. So there are\ninfinitely many primes.\n\nThe idea: let `p` be the smallest prime factor of `n! + 1`. If `p < n`,\nthen `p` divides `n!`, and also `n! + 1`, so it divides `1`.\nThat is impossible. -/\ntheorem exists_prime_ge (n : ℕ) : ∃ p, n ≤ p ∧ p.Prime := by\n  have hpos : 0 < n.factorial := Nat.factorial_pos n\n  have hne : n.factorial + 1 ≠ 1 := by omega\n  let p := Nat.minFac (n.factorial + 1)\n  have hp : p.Prime := Nat.minFac_prime hne\n  refine ⟨p, ?_, hp⟩\n  by_contra hlt\n  rw [not_le] at hlt\n  have h1 : p ∣ n.factorial := Nat.dvd_factorial hp.pos hlt.le\n  have h2 : p ∣ n.factorial + 1 := Nat.minFac_dvd (n.factorial + 1)\n  have h3 : p ∣ 1 := (Nat.dvd_add_right h1).mp h2\n  exact hp.one_lt.ne' (Nat.dvd_one.mp h3)\n\n/-- The same fact, stated as \"the set of primes is infinite\", and proved by\nlooking the result up in Mathlib. -/\ntheorem primes_infinite : {p : ℕ | p.Prime}.Infinite :=\n  Nat.infinite_setOfPred_prime\n\nend LeanProofs"}, {"id": "injective", "tab": "Injective ∘ injective", "title": "A composition of injective functions is injective", "file": "InjectiveComp.lean", "statement": "If <i>f : α → β<\/i> and <i>g : β → γ<\/i> are injective, then so is <i>g ∘ f<\/i>.", "paper": "Suppose <i>g(f(x)) = g(f(y))<\/i>. Since <i>g<\/i> is injective, <i>f(x) = f(y)<\/i>; since <i>f<\/i> is injective, <i>x = y<\/i>. ∎", "decls": [{"name": "injective_comp", "intro": "This proof reasons <em>backwards<\/em> from the goal. Each <code>apply<\/code> replaces the goal by something that suffices to prove it.", "doc_line": 7, "line": 8, "end": 14, "source": "/-- A composition of injective functions is injective. -/\ntheorem injective_comp {α β γ : Type*} {f : α → β} {g : β → γ}\n    (hf : Injective f) (hg : Injective g) :\n    Injective (g ∘ f) := by\n  intro x y h\n  apply hf\n  apply hg\n  exact h", "steps": [{"line": 11, "before": "α : Type u_1\nβ : Type u_2\nγ : Type u_3\nf : α → β\ng : β → γ\nhf : Injective f\nhg : Injective g\n⊢ Injective (g ∘ f)", "after": "α : Type u_1\nβ : Type u_2\nγ : Type u_3\nf : α → β\ng : β → γ\nhf : Injective f\nhg : Injective g\nx y : α\nh : (g ∘ f) x = (g ∘ f) y\n⊢ x = y", "comment": "<code>Injective (g ∘ f)<\/code> unfolds to <code>∀ x y, (g ∘ f) x = (g ∘ f) y → x = y<\/code>. <code>intro<\/code> fixes <code>x<\/code> and <code>y<\/code> and assumes the equation, naming it <code>h<\/code>."}, {"line": 12, "before": "α : Type u_1\nβ : Type u_2\nγ : Type u_3\nf : α → β\ng : β → γ\nhf : Injective f\nhg : Injective g\nx y : α\nh : (g ∘ f) x = (g ∘ f) y\n⊢ x = y", "after": "α : Type u_1\nβ : Type u_2\nγ : Type u_3\nf : α → β\ng : β → γ\nhf : Injective f\nhg : Injective g\nx y : α\nh : (g ∘ f) x = (g ∘ f) y\n⊢ f x = f y", "comment": "To prove <code>x = y<\/code> it suffices, since <code>f<\/code> is injective, to prove <code>f x = f y<\/code>."}, {"line": 13, "before": "α : Type u_1\nβ : Type u_2\nγ : Type u_3\nf : α → β\ng : β → γ\nhf : Injective f\nhg : Injective g\nx y : α\nh : (g ∘ f) x = (g ∘ f) y\n⊢ f x = f y", "after": "α : Type u_1\nβ : Type u_2\nγ : Type u_3\nf : α → β\ng : β → γ\nhf : Injective f\nhg : Injective g\nx y : α\nh : (g ∘ f) x = (g ∘ f) y\n⊢ g (f x) = g (f y)", "comment": "Likewise via <code>g<\/code>: it suffices to prove <code>g (f x) = g (f y)<\/code>."}, {"line": 14, "before": "α : Type u_1\nβ : Type u_2\nγ : Type u_3\nf : α → β\ng : β → γ\nhf : Injective f\nhg : Injective g\nx y : α\nh : (g ∘ f) x = (g ∘ f) y\n⊢ g (f x) = g (f y)", "after": "", "comment": "That is <code>h<\/code>, because <code>(g ∘ f) x<\/code> is by definition <code>g (f x)<\/code>."}], "axioms": [], "term": "theorem LeanProofs.injective_comp.{u_1, u_2, u_3} : ∀ {α : Type u_1} {β : Type u_2} {γ : Type u_3} {f : α → β}\n  {g : β → γ}, Function.Injective f → Function.Injective g → Function.Injective (g ∘ f) :=\nfun {α} {β} {γ} {f} {g} hf hg ⦃x y⦄ h => hf (hg h)"}], "sha256": "694ef98f29d2134ba6adfb40a694373f9a8832ebc8d18fd034c5af81f57bfc52", "path": "lean/LeanProofs/InjectiveComp.lean", "file_source": "import Mathlib\n\nnamespace LeanProofs\n\nopen Function\n\n/-- A composition of injective functions is injective. -/\ntheorem injective_comp {α β γ : Type*} {f : α → β} {g : β → γ}\n    (hf : Injective f) (hg : Injective g) :\n    Injective (g ∘ f) := by\n  intro x y h\n  apply hf\n  apply hg\n  exact h\n\nend LeanProofs"}], "anatomy": {"source": "/-- If `e` and `e'` are both two-sided identities for a multiplication,\nthen `e = e'`. Only a multiplication `*` is assumed: no associativity,\nno inverses. -/\ntheorem identity_unique {M : Type*} [Mul M] (e e' : M)\n    (he : ∀ a : M, e * a = a ∧ a * e = a)\n    (he' : ∀ a : M, e' * a = a ∧ a * e' = a) :\n    e = e' := by\n  have h1 : e * e' = e' := (he e').1\n  have h2 : e * e' = e := (he' e).2\n  rw [← h2]\n  exact h1", "parts": [{"text": "/--", "label": "Doc comment", "html": "Documentation between <code>/--<\/code> and <code>-/<\/code>. Lean ignores it when checking; tools display it."}, {"text": "theorem", "label": "Keyword", "html": "<code>theorem<\/code> introduces a named statement together with its proof. <code>lemma<\/code> means the same thing."}, {"text": "identity_unique", "label": "Name", "html": "The name, used to cite the result later, for example <code>exact identity_unique e e' he he'<\/code>."}, {"text": "{M : Type*}", "label": "Implicit argument", "html": "“Let <i>M<\/i> be a type.” Curly braces mean Lean will infer <i>M<\/i> from the other arguments, so you never pass it by hand."}, {"text": "[Mul M]", "label": "Instance argument", "html": "“…equipped with a multiplication.” Square brackets mean Lean finds this structure automatically. A group, a ring, or ℕ all supply one."}, {"text": "(e e' : M)", "label": "Explicit arguments", "html": "“Let <i>e, e′ ∈ M<\/i>.”"}, {"text": "(he : ∀ a : M, e * a = a ∧ a * e = a)", "label": "Hypothesis", "html": "“Suppose <i>e<\/i> is a two-sided identity.” A hypothesis is just another argument, whose type is a proposition. To use the theorem you must supply a proof of it."}, {"text": "(he' : ∀ a : M, e' * a = a ∧ a * e' = a)", "label": "Second hypothesis", "html": "“…and so is <i>e′<\/i>.” The <code>∀<\/code> is part of the hypothesis: <code>he' x<\/code> is the special case <i>a = x<\/i>, and <code>∧<\/code> joins the two one-sided laws, read off with <code>.1<\/code> and <code>.2<\/code>."}, {"text": "e = e'", "label": "Conclusion", "html": "The statement after the final colon is what gets proved."}, {"text": ":= by", "label": "Start of the proof", "html": "<code>:=<\/code> gives the proof. <code>by<\/code> switches to <em>tactic mode<\/em>, where each line is an instruction that transforms the current goal."}]}, "broken": {"source": "import Mathlib\n\nnamespace LeanProofs\n\n/-- A false statement. The proof attempt is rejected. -/\ntheorem false_claim (n : ℕ) : n + 1 = n := by\n  omega\n\n/-- A true statement with a gap: `sorry` tells Lean \"trust me\". Lean\naccepts the file with a warning, and `#print axioms` exposes the gap. -/\ntheorem with_a_gap (n : ℕ) : n * 0 = 0 := by\n  sorry\n\nend LeanProofs", "messages": [{"line": 7, "col": 2, "severity": "error", "text": "omega could not prove the goal:\na possible counterexample may satisfy the constraints\n  a ≥ 0\nwhere\n a := ↑n"}, {"line": 11, "col": 8, "severity": "warning", "text": "declaration uses `sorry`"}], "declarations": [{"name": "false_claim", "axioms": ["sorryAx"], "line": 6, "end": 7}, {"name": "with_a_gap", "axioms": ["sorryAx"], "line": 11, "end": 12}]}, "lemmas": ["@mul_one : ∀ {M : Type u_1} [inst : MulOneClass M] (a : M), a * 1 = a", "@one_mul : ∀ {M : Type u_1} [inst : MulOneClass M] (a : M), 1 * a = a", "@mul_assoc : ∀ {G : Type u_1} [inst : Semigroup G] (a b c : G), a * b * c = a * (b * c)", "@inv_mul_cancel : ∀ {G : Type u_1} [inst : Group G] (a : G), a⁻¹ * a = 1", "@mul_inv_cancel : ∀ {G : Type u_1} [inst : Group G] (a : G), a * a⁻¹ = 1", "Nat.add_succ : ∀ (n m : ℕ), n + m.succ = (n + m).succ", "@Nat.minFac_prime : ∀ {n : ℕ}, n ≠ 1 → Nat.Prime n.minFac", "Nat.minFac_dvd : ∀ (n : ℕ), n.minFac ∣ n", "@Nat.dvd_factorial : ∀ {m n : ℕ}, 0 < m → m ≤ n → m ∣ n.factorial", "@Nat.dvd_add_right : ∀ {a b c : ℕ}, a ∣ b → (a ∣ b + c ↔ a ∣ c)", "Nat.infinite_setOfPred_prime : {p | Nat.Prime p}.Infinite", "@Function.Injective : {α : Sort u_1} → {β : Sort u_2} → (α → β) → Prop"], "certificate": [{"theorem": "LeanProofs.add_zero", "file": "lean/LeanProofs/AddZero.lean", "sha256": "3041f27dab791f5b38a5131d764ea029fe32ef83d899258c5b190a85f367c1b8", "axioms": [], "expected_to_fail": false}, {"theorem": "LeanProofs.zero_add", "file": "lean/LeanProofs/AddZero.lean", "sha256": "3041f27dab791f5b38a5131d764ea029fe32ef83d899258c5b190a85f367c1b8", "axioms": [], "expected_to_fail": false}, {"theorem": "LeanProofs.false_claim", "file": "lean/LeanProofs/Broken.lean", "sha256": "40e7f938484ad6bee088684809fef8dd0170b15b2b885c47c58f5a600c9298fd", "axioms": ["sorryAx"], "expected_to_fail": true}, {"theorem": "LeanProofs.with_a_gap", "file": "lean/LeanProofs/Broken.lean", "sha256": "40e7f938484ad6bee088684809fef8dd0170b15b2b885c47c58f5a600c9298fd", "axioms": ["sorryAx"], "expected_to_fail": true}, {"theorem": "LeanProofs.exists_prime_ge", "file": "lean/LeanProofs/Euclid.lean", "sha256": "462656d5247cfe7da6ac8f2e43dd557d3d0bd5bb22c0fe52fc80904b8e999fb6", "axioms": ["propext", "Classical.choice", "Quot.sound"], "expected_to_fail": false}, {"theorem": "LeanProofs.primes_infinite", "file": "lean/LeanProofs/Euclid.lean", "sha256": "462656d5247cfe7da6ac8f2e43dd557d3d0bd5bb22c0fe52fc80904b8e999fb6", "axioms": ["propext", "Classical.choice", "Quot.sound"], "expected_to_fail": false}, {"theorem": "LeanProofs.identity_unique", "file": "lean/LeanProofs/IdentityUnique.lean", "sha256": "aef273808094523582efe1e38e2acf34d70cb8bd65f2e0753a458ebb1438fbc5", "axioms": [], "expected_to_fail": false}, {"theorem": "LeanProofs.eq_one_of_mul_left", "file": "lean/LeanProofs/IdentityUnique.lean", "sha256": "aef273808094523582efe1e38e2acf34d70cb8bd65f2e0753a458ebb1438fbc5", "axioms": ["propext"], "expected_to_fail": false}, {"theorem": "LeanProofs.injective_comp", "file": "lean/LeanProofs/InjectiveComp.lean", "sha256": "694ef98f29d2134ba6adfb40a694373f9a8832ebc8d18fd034c5af81f57bfc52", "axioms": [], "expected_to_fail": false}, {"theorem": "LeanProofs.inv_unique_calc", "file": "lean/LeanProofs/InverseUnique.lean", "sha256": "14429307c61372612fd7c437f5dbc67bab6f62a8cec16033742019f82c24a18e", "axioms": ["propext"], "expected_to_fail": false}, {"theorem": "LeanProofs.inv_unique", "file": "lean/LeanProofs/InverseUnique.lean", "sha256": "14429307c61372612fd7c437f5dbc67bab6f62a8cec16033742019f82c24a18e", "axioms": ["propext"], "expected_to_fail": false}], "rev": "7a7d09d", "public_repo": "https://github.com/alozanoroble/lean-proofs"};
+
+/* ---------- theme ---------- */
+(function(){
+  const root = document.documentElement, btn = document.getElementById('themebtn');
+  let t = null; try { t = localStorage.getItem('lpx-theme'); } catch(e){}
+  if (t) root.setAttribute('data-theme', t);
+  btn.addEventListener('click', () => {
+    const dark = root.getAttribute('data-theme') ? root.getAttribute('data-theme') === 'dark'
+      : matchMedia('(prefers-color-scheme: dark)').matches;
+    const next = dark ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('lpx-theme', next); } catch(e){}
+  });
+})();
+
+/* ---------- helpers ---------- */
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $ = id => document.getElementById(id);
+
+/* ---------- Lean highlighter: per-character classes ---------- */
+const KW = new Set(['theorem','lemma','def','example','namespace','end','open','variable','import','by',
+  'fun','have','let','calc','show','from','at','with','match','if','then','else','structure','instance',
+  'where','section','abbrev','noncomputable','universe','Type','Prop','Sort']);
+const TAC = new Set(['rw','exact','apply','intro','intros','induction','refine','by_contra','omega','rfl',
+  'ring','simp','cases','obtain','constructor','use','linarith','norm_num','decide','trace_state','push_neg',
+  'contradiction','exfalso','specialize','calc']);
+const TY = new Set(['Nat','ℕ','ℤ','ℚ','ℝ','False','True','Group','Mul','Injective','Function']);
+function classify(src){
+  const cls = new Array(src.length).fill('');
+  let i = 0;
+  const set = (a,b,c) => { for (let k=a;k<b;k++) cls[k]=c; };
+  const idStart = /[A-Za-z_α-ωΑ-Ωℕℤℚℝ]/, idChar = /[A-Za-z0-9_'!?.α-ωΑ-Ωℕℤℚℝ₀-₉*]/;
+  while (i < src.length){
+    if (src.startsWith('/-', i)){
+      let depth = 0, j = i;
+      while (j < src.length){
+        if (src.startsWith('/-', j)){ depth++; j+=2; continue; }
+        if (src.startsWith('-/', j)){ depth--; j+=2; if (!depth) break; continue; }
+        j++;
+      }
+      set(i, j, 'tk-cm'); i = j; continue;
+    }
+    if (src.startsWith('--', i)){ let j = src.indexOf('\n', i); if (j<0) j = src.length; set(i,j,'tk-cm'); i=j; continue; }
+    const ch = src[i];
+    if (/[0-9]/.test(ch) && !(i>0 && idChar.test(src[i-1]))){ let j=i; while (j<src.length && /[0-9]/.test(src[j])) j++; set(i,j,'tk-num'); i=j; continue; }
+    if (idStart.test(ch) && !(i>0 && idChar.test(src[i-1]))){
+      let j = i; while (j < src.length && idChar.test(src[j])) j++;
+      let w = src.slice(i, j);
+      // don't swallow a trailing "*" except in Type*
+      if (w.endsWith('*') && w !== 'Type*'){ j = i + w.replace(/\*+$/,'').length; w = src.slice(i,j); }
+      const head = w.replace(/\*$/,'');
+      const c = w === 'sorry' ? 'tk-sorry' : KW.has(head) ? 'tk-kw' : TAC.has(w) ? 'tk-tac'
+        : (TY.has(w) || /^[α-γ]$/.test(w) ? 'tk-ty' : '');
+      if (c) set(i, j, c);
+      i = j; continue;
+    }
+    i++;
+  }
+  return cls;
+}
+/* render source into lines of HTML; parts: [{start,end,idx}] optional */
+function renderLines(src, parts){
+  const cls = classify(src);
+  const partAt = new Array(src.length).fill(-1);
+  (parts||[]).forEach(p => { for (let k=p.start;k<p.end;k++) partAt[k] = p.idx; });
+  const lines = []; let cur = '', openCls = null, openPart = -1;
+  const close = () => { if (openCls !== null){ cur += '</span>'; openCls = null; } };
+  const closePart = () => { close(); if (openPart >= 0){ cur += '</span>'; openPart = -1; } };
+  for (let k=0;k<src.length;k++){
+    const ch = src[k];
+    if (ch === '\n'){ closePart(); lines.push(cur); cur=''; continue; }
+    if (partAt[k] !== openPart){ closePart(); if (partAt[k] >= 0){ cur += `<span class="part" data-part="${partAt[k]}">`; openPart = partAt[k]; } }
+    if (cls[k] !== (openCls ?? '')){ close(); if (cls[k]){ cur += `<span class="${cls[k]}">`; openCls = cls[k]; } }
+    cur += esc(ch);
+  }
+  closePart(); lines.push(cur);
+  return lines;
+}
+function codeBlock(src, firstLine=1, opts={}){
+  const lines = renderLines(src, opts.parts);
+  const wrap = document.createElement('div');
+  wrap.className = 'code';
+  if (opts.label) wrap.setAttribute('aria-label', opts.label);
+  lines.forEach((h, k) => {
+    const n = firstLine + k;
+    const row = document.createElement('div');
+    row.className = 'ln';
+    row.dataset.line = n;
+    row.innerHTML = `<span class="gut">${opts.gutter === false ? '' : n}</span><span class="src">${h || ' '}</span>`;
+    wrap.appendChild(row);
+    (opts.after && opts.after[n] || []).forEach(m => {
+      const d = document.createElement('div');
+      d.className = 'msg ' + m.severity;
+      d.innerHTML = `<span class="sev">${esc(m.severity)} · line ${m.line}, col ${m.col}</span>${esc(m.text)}`;
+      wrap.appendChild(d);
+    });
+  });
+  return wrap;
+}
+
+/* ---------- goal rendering ---------- */
+function parseGoals(text){
+  return text.split(/\n\n(?=\S)/).map(g => {
+    const raw = g.split('\n'); const lines = [];
+    raw.forEach(l => { if (/^\s/.test(l) && lines.length) lines[lines.length-1] += '\n' + l; else lines.push(l); });
+    let kase = null;
+    if (lines.length && /^case /.test(lines[0])) kase = lines.shift();
+    return { kase, hyps: lines.filter(l => !l.startsWith('⊢')), tgt: lines.find(l => l.startsWith('⊢')) || '' };
+  });
+}
+function goalsHTML(text, prevText){
+  if (text === null || text === undefined) return `<div class="goals">(not reached)</div>`;
+  if (text.trim() === '') return `<div class="goals done">✓ No goals. This part of the proof is complete.</div>`;
+  const prev = new Set();
+  if (prevText) parseGoals(prevText).forEach(g => { g.hyps.forEach(h => prev.add(h)); prev.add(g.tgt); });
+  return `<div class="goals">` + parseGoals(text).map(g => {
+    const hy = g.hyps.map(h => {
+      const m = h.match(/^([^:]+?) : ([\s\S]*)$/);
+      const inner = m ? `<span class="nm">${esc(m[1])}</span> : ${esc(m[2])}` : esc(h);
+      return `<div class="hyp${prevText && !prev.has(h) ? ' new' : ''}">${inner}</div>`;
+    }).join('');
+    const tgt = `<div class="tgt${prevText && !prev.has(g.tgt) ? ' new' : ''}"><span class="turn">⊢</span>${esc(g.tgt.slice(1))}</div>`;
+    return `<div class="goal">${g.kase ? `<div class="case">${esc(g.kase)}</div>` : ''}${hy}${tgt}</div>`;
+  }).join('') + `</div>`;
+}
+
+/* ---------- axioms chips ---------- */
+function axiomChips(ax){
+  if (!ax) return '<span class="chip">unknown</span>';
+  if (!ax.length) return '<span class="chip none">no axioms</span>';
+  return ax.map(a => `<span class="chip${a === 'sorryAx' ? ' bad' : ''}">${esc(a)}</span>`).join(' ');
+}
+function liveLink(src){
+  return 'https://live.lean-lang.org/#code=' + encodeURIComponent(src);
+}
+
+/* ---------- teaser ---------- */
+const exById = Object.fromEntries(DATA.examples.map(e => [e.id, e]));
+(function(){
+  const ex = exById.identity, d = ex.decls[0];
+  $('teaser-paper').innerHTML = `<p><b>Theorem.</b> ${ex.statement}</p><p><b>Proof.</b> ${ex.paper}</p>`;
+  const lines = d.source.split('\n');
+  const start = lines.findIndex(l => /^theorem/.test(l));
+  $('teaser-code').appendChild(codeBlock(lines.slice(start).join('\n'), d.doc_line + start));
+})();
+
+/* ---------- term demo ---------- */
+(function(){
+  const d = exById.injective.decls[0];
+  $('term-demo').appendChild(codeBlock(d.term, 1, {gutter:false}));
+})();
+
+/* ---------- Mathlib stats ---------- */
+(function(){
+  const m = DATA.env.mathlib, fmt = n => n.toLocaleString('en-US');
+  const round = n => n >= 1e6 ? (n/1e6).toFixed(2) + ' M' : fmt(n);
+  $('stats').innerHTML = [
+    [round(m.lines), 'lines of Lean'], [fmt(m.files), 'files'],
+    [fmt(m.theorems), 'theorems & lemmas'], [fmt(m.defs), 'definitions']
+  ].map(([v,l]) => `<div class="stat"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+  $('stats-note').textContent = `Counted in the Mathlib checkout used for this page (commit ${m.commit.slice(0,10)}, ${m.commit_date.slice(0,10)}). `
+    + `Theorems and definitions are counted as lines that begin a theorem/lemma or def/abbrev declaration, so the figures are approximate.`;
+  $('lemmas').appendChild(codeBlock(DATA.lemmas.join('\n'), 1, {gutter:false}));
+})();
+
+/* ---------- anatomy ---------- */
+(function(){
+  const A = DATA.anatomy, src = A.source;
+  const parts = []; let from = 0;
+  A.parts.forEach((p, idx) => {
+    let s = src.indexOf(p.text, p.text === '/--' ? 0 : from);
+    if (s < 0) return;
+    let e = s + p.text.length;
+    if (p.text === '/--') e = src.indexOf('-/', s) + 2;
+    parts.push({start:s, end:e, idx}); from = e;
+  });
+  const firstLine = exById.identity.decls[0].doc_line;
+  const block = codeBlock(src, firstLine, {parts});
+  $('anat-code').appendChild(block);
+  const list = $('anat-list');
+  A.parts.forEach((p, idx) => {
+    const b = document.createElement('button'); b.type='button'; b.textContent = p.label; b.dataset.part = idx;
+    list.appendChild(b);
+  });
+  function show(idx){
+    const p = A.parts[idx];
+    document.querySelectorAll('#anatomy [data-part]').forEach(el => el.classList.toggle('on', +el.dataset.part === idx));
+    const snippet = p.text === '/--' ? src.slice(0, src.indexOf('-/') + 2) : p.text;
+    $('anat-explain').innerHTML = `<span class="k">${idx+1} of ${A.parts.length}</span><b>${esc(p.label)}</b>`
+      + `<div class="snippet">${esc(snippet)}</div><p style="margin:0">${p.html}</p>`;
+  }
+  document.querySelectorAll('#anatomy [data-part]').forEach(el => {
+    el.addEventListener('mouseenter', () => show(+el.dataset.part));
+    el.addEventListener('click', () => show(+el.dataset.part));
+  });
+  show(1);
+})();
+
+/* ---------- examples ---------- */
+function stepper(ex, d){
+  const box = document.createElement('div');
+  box.className = 'stepper';
+  const code = codeBlock(d.source, d.doc_line, {label: `Lean source of ${d.name}`});
+  const iv = document.createElement('div'); iv.className = 'infoview';
+  box.append(code, iv);
+  const steps = d.steps;
+  const stepLines = new Set(steps.map(s => s.line));
+  code.querySelectorAll('.ln').forEach(r => { if (stepLines.has(+r.dataset.line)) r.classList.add('step'); });
+  let i = -1;
+  iv.innerHTML = `<div class="ivhead"><span class="k">Goal panel</span>
+      <div class="controls"><button type="button" data-a="first" aria-label="Back to the start">⏮</button>
+      <button type="button" data-a="prev" aria-label="Previous step">←</button>
+      <span class="count" aria-live="polite"></span>
+      <button type="button" data-a="next" aria-label="Next step">→</button></div></div>
+    <div class="where"></div><div class="gstate"></div><div class="cm"></div>`;
+  function render(){
+    code.querySelectorAll('.ln').forEach(r => r.classList.toggle('active', i >= 0 && +r.dataset.line === steps[i].line));
+    iv.querySelector('.count').textContent = `${i+1} / ${steps.length}`;
+    iv.querySelector('[data-a=first]').disabled = i < 0;
+    iv.querySelector('[data-a=prev]').disabled = i < 0;
+    iv.querySelector('[data-a=next]').disabled = i >= steps.length - 1;
+    if (i < 0){
+      iv.querySelector('.where').innerHTML = `<span class="where">Before the first tactic: the statement, as a goal.</span>`;
+      iv.querySelector('.gstate').innerHTML = goalsHTML(steps[0].before, null);
+      iv.querySelector('.cm').innerHTML = `<div class="comment">Above the line are the hypotheses: the variables and assumptions in the statement. After <code>⊢</code> is what must be proved. Press → to run the first tactic.</div>`;
+    } else {
+      const s = steps[i];
+      iv.querySelector('.where').innerHTML = `<span class="where">After line ${s.line}</span>`;
+      iv.querySelector('.gstate').innerHTML = goalsHTML(s.after, s.before);
+      const tac = d.source.split('\n')[s.line - d.doc_line].trim();
+      iv.querySelector('.cm').innerHTML = `<div class="comment"><span class="tac">${esc(tac)}</span>${s.comment}</div>`;
+    }
+  }
+  iv.addEventListener('click', e => {
+    const a = e.target.closest('button')?.dataset.a; if (!a) return;
+    if (a === 'first') i = -1; if (a === 'prev') i = Math.max(-1, i-1); if (a === 'next') i = Math.min(steps.length-1, i+1);
+    render();
+  });
+  code.addEventListener('click', e => {
+    const r = e.target.closest('.ln.step'); if (!r) return;
+    i = steps.findIndex(s => s.line === +r.dataset.line); render();
+  });
+  box.tabIndex = -1;
+  box.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight'){ i = Math.min(steps.length-1, i+1); render(); e.preventDefault(); }
+    if (e.key === 'ArrowLeft'){ i = Math.max(-1, i-1); render(); e.preventDefault(); }
+  });
+  render();
+  return box;
+}
+function renderExample(id){
+  const ex = exById[id], host = $('example');
+  host.innerHTML = `
+    <h3 style="font-size:26px; margin-bottom:14px">${esc(ex.title)}</h3>
+    <div class="exhead">
+      <div class="card"><div class="lbl">Theorem</div><div class="math">${ex.statement}</div></div>
+      <div class="card"><div class="lbl">Proof on paper</div><div class="math">${ex.paper}</div></div>
+    </div>
+    ${ex.note ? `<p class="fine" style="margin-top:-12px">${ex.note}</p>` : ''}
+    <div class="meta"><span>File <code>${esc(ex.path)}</code></span>
+      <span title="${esc(ex.sha256)}">sha256 <code>${esc(ex.sha256.slice(0,12))}…</code></span>
+      <a class="btnlink" href="${liveLink(DATA_SRC[ex.file])}" target="_blank" rel="noopener">Open in Lean 4 Web ↗</a></div>`;
+  ex.decls.forEach(d => {
+    const sec = document.createElement('div'); sec.className = 'decl';
+    sec.innerHTML = `<h4>${esc(d.name)}</h4><p class="intro">${d.intro}</p>`;
+    sec.appendChild(d.steps.length ? stepper(ex, d) : codeBlock(d.source, d.doc_line));
+    const meta = document.createElement('div'); meta.className = 'meta';
+    meta.innerHTML = `<span>Axioms used:</span> ${axiomChips(d.axioms)}`;
+    sec.appendChild(meta);
+    if (d.term){
+      const det = document.createElement('details'); det.className = 'term';
+      det.innerHTML = `<summary>Show the proof term Lean built (<code>#print</code>)</summary>`;
+      det.appendChild(codeBlock(d.term, 1, {gutter:false}));
+      sec.appendChild(det);
+    }
+    host.appendChild(sec);
+  });
+}
+// Lean 4 Web links open the whole checked file, verbatim.
+const DATA_SRC = Object.fromEntries(DATA.examples.map(ex => [ex.file, ex.file_source]));
+(function(){
+  const tabs = $('tabs');
+  DATA.examples.forEach((ex, k) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'tab'; b.role = 'tab';
+    b.textContent = ex.tab; b.dataset.id = ex.id; b.setAttribute('aria-selected', k === 0 ? 'true' : 'false');
+    b.addEventListener('click', () => {
+      tabs.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', t === b ? 'true' : 'false'));
+      renderExample(ex.id);
+      try { history.replaceState(null, '', '#ex-' + ex.id); } catch(e){}
+    });
+    tabs.appendChild(b);
+  });
+  const m = location.hash.match(/^#ex-(\w+)/);
+  const first = m && exById[m[1]] ? m[1] : DATA.examples[0].id;
+  tabs.querySelector(`[data-id="${first}"]`).click();
+  if (m) setTimeout(() => $('examples').scrollIntoView(), 50);
+  addEventListener('hashchange', () => {
+    const h = location.hash.match(/^#ex-(\w+)/);
+    if (h && exById[h[1]]){ tabs.querySelector(`[data-id="${h[1]}"]`).click(); $('examples').scrollIntoView(); }
+  });
+})();
+
+/* ---------- broken ---------- */
+(function(){
+  const B = DATA.broken, after = {};
+  B.messages.forEach(m => (after[m.line] = after[m.line] || []).push(m));
+  const block = codeBlock(B.source, 1, {after});
+  B.messages.forEach(m => {
+    const r = block.querySelector(`.ln[data-line="${m.line}"]`);
+    if (r) r.classList.add(m.severity === 'error' ? 'errline' : 'warnline');
+  });
+  $('broken').appendChild(block);
+  const meta = document.createElement('div'); meta.className = 'meta';
+  meta.innerHTML = B.declarations.map(d => `<span><code>${esc(d.name)}</code> depends on ${axiomChips(d.axioms)}</span>`).join('<span aria-hidden="true">·</span>');
+  $('broken').appendChild(meta);
+})();
+
+/* ---------- certificate ---------- */
+(function(){
+  const E = DATA.env;
+  const rows = [
+    ['Checked', E.checked_at + ' on ' + E.host],
+    ['Lean', E.lean_version],
+    ['Toolchain', E.toolchain],
+    ['Mathlib', E.mathlib.commit + ' (' + E.mathlib.commit_date.slice(0,10) + ')'],
+    ['Raw output', DATA.check_dir + '/'],
+  ];
+  $('certenv').innerHTML = rows.map(([k,v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('');
+  $('certtable').innerHTML = `<thead><tr><th>Theorem</th><th>File · sha256</th><th>Axioms</th><th>Verdict</th></tr></thead><tbody>` +
+    DATA.certificate.map(c => {
+      const bad = !c.axioms || c.axioms.includes('sorryAx');
+      return `<tr class="${bad ? 'badrow' : ''}"><td class="mono">${esc(c.theorem)}</td>
+        <td class="mono">${esc(c.file.split('/').pop())}<br><span title="${esc(c.sha256)}" style="color:var(--faint)">${esc(c.sha256.slice(0,16))}…</span></td>
+        <td>${axiomChips(c.axioms)}</td>
+        <td>${bad ? '<span class="no">✗ not proved</span>' : '<span class="ok">✓ proved</span>'}</td></tr>`;
+    }).join('') + `</tbody>`;
+  $('repro').textContent =
+`git clone ${DATA.public_repo}.git && cd ${DATA.public_repo.split('/').pop()}/lean
+lake exe cache get        # download Mathlib, prebuilt, at the pinned commit
+lake build                # compile every example (Broken.lean is excluded)
+lake env lean LeanProofs/Broken.lean   # see the two failures
+sha256sum LeanProofs/*.lean            # compare with the table above`;
+  $('stamp').textContent = `Checked ${E.checked_at.slice(0,10)} with ${E.toolchain.replace('leanprover/lean4:','Lean ')}`
+    + ` and Mathlib ${E.mathlib.commit.slice(0,10)}` + (DATA.rev ? ` · build ${DATA.rev}` : '') + '.';
+})();
+
+/* ---------- nav highlight ---------- */
+(function(){
+  const links = [...document.querySelectorAll('#navlinks a')];
+  const secs = links.map(a => document.querySelector(a.getAttribute('href')));
+  const io = new IntersectionObserver(es => {
+    es.forEach(e => { if (e.isIntersecting){ links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + e.target.id)); } });
+  }, {rootMargin:'-45% 0px -50% 0px'});
+  secs.forEach(s => s && io.observe(s));
+})();
+</script>
+<script src="https://alozanoroble.github.io/banner.js" defer></script>
+</body>
+</html>

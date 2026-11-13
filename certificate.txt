@@ -1,0 +1,33 @@
+Proof certificate - lean-proofs-explorer
+========================================
+
+Checked   2026-10-01T18:11:55-04:00 on C3P0
+Lean      Lean (version 4.34.0, x86_64-unknown-linux-gnu, commit 293d5d0c0c3f3dded4688b3ccd6a33939ac5102b, Release)
+Toolchain leanprover/lean4:v4.34.0
+Mathlib   db00fb3901b1bb4954f8a2373285959a5930bbfa (2026-09-15T06:31:53Z)
+Raw Lean output: results/check-20261001-181155/
+
+Source files (sha256):
+  3041f27dab791f5b38a5131d764ea029fe32ef83d899258c5b190a85f367c1b8  lean/LeanProofs/AddZero.lean
+  40e7f938484ad6bee088684809fef8dd0170b15b2b885c47c58f5a600c9298fd  lean/LeanProofs/Broken.lean   [expected to fail]
+  462656d5247cfe7da6ac8f2e43dd557d3d0bd5bb22c0fe52fc80904b8e999fb6  lean/LeanProofs/Euclid.lean
+  aef273808094523582efe1e38e2acf34d70cb8bd65f2e0753a458ebb1438fbc5  lean/LeanProofs/IdentityUnique.lean
+  694ef98f29d2134ba6adfb40a694373f9a8832ebc8d18fd034c5af81f57bfc52  lean/LeanProofs/InjectiveComp.lean
+  14429307c61372612fd7c437f5dbc67bab6f62a8cec16033742019f82c24a18e  lean/LeanProofs/InverseUnique.lean
+  85e21fd898623233ea41f5cd1577604cb0d2a903ea0dde8eb6258dc996144bfa  lean/LeanProofs/MathlibLemmas.lean
+
+Axioms, from #print axioms:
+  LeanProofs.add_zero                proved     [none]
+  LeanProofs.zero_add                proved     [none]
+  LeanProofs.false_claim             NOT PROVED [sorryAx]
+  LeanProofs.with_a_gap              NOT PROVED [sorryAx]
+  LeanProofs.exists_prime_ge         proved     [propext, Classical.choice, Quot.sound]
+  LeanProofs.primes_infinite         proved     [propext, Classical.choice, Quot.sound]
+  LeanProofs.identity_unique         proved     [none]
+  LeanProofs.eq_one_of_mul_left      proved     [propext]
+  LeanProofs.injective_comp          proved     [none]
+  LeanProofs.inv_unique_calc         proved     [propext]
+  LeanProofs.inv_unique              proved     [propext]
+
+Reproduce: see the 'Check it yourself' section of index.html, or
+  python3 scripts/check.py   (WSL, against the pinned Mathlib)

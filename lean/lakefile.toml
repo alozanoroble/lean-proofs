@@ -1,0 +1,15 @@
+name = "LeanProofs"
+version = "0.1.0"
+defaultTargets = ["LeanProofs"]
+
+# Broken.lean is deliberately wrong and is not part of the library build;
+# scripts/check.py compiles it on its own and expects it to fail.
+[[lean_lib]]
+name = "LeanProofs"
+globs = ["LeanProofs.AddZero", "LeanProofs.IdentityUnique", "LeanProofs.InverseUnique",
+         "LeanProofs.Euclid", "LeanProofs.InjectiveComp", "LeanProofs.MathlibLemmas"]
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "db00fb3901b1bb4954f8a2373285959a5930bbfa"
